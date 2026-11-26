@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 import dev.brickfolio.jsleeper.internal.EmptyKind;
 import dev.brickfolio.jsleeper.internal.Requester;
+import dev.brickfolio.jsleeper.model.League;
+import dev.brickfolio.jsleeper.model.Sport;
 import dev.brickfolio.jsleeper.model.User;
 import java.util.List;
 import java.util.Map;
@@ -13,7 +15,10 @@ import java.util.Optional;
 /** User endpoints. Stateless and thread-safe. */
 public final class UsersApi {
 
-    private static final JavaType USER_TYPE = TypeFactory.defaultInstance().constructType(User.class);
+    private static final TypeFactory TYPES = TypeFactory.defaultInstance();
+    private static final JavaType USER_TYPE = TYPES.constructType(User.class);
+    private static final JavaType LEAGUE_LIST_TYPE =
+            TYPES.constructCollectionType(List.class, League.class);
 
     private final Requester requester;
 
@@ -32,10 +37,27 @@ public final class UsersApi {
      * @throws IllegalArgumentException if the argument is null or blank
      */
     public Optional<User> get(String usernameOrId) {
-        if (usernameOrId == null || usernameOrId.isBlank()) {
-            throw new IllegalArgumentException("usernameOrId must not be blank");
-        }
+        Args.requireId("usernameOrId", usernameOrId);
         return requester.get(List.of("user", usernameOrId), Map.of(), USER_TYPE,
                 EmptyKind.OPTIONAL, null);
+    }
+
+    /**
+     * Returns the leagues a user belongs to for a sport and season
+     * ({@code /user/{userId}/leagues/{sport}/{season}}), or an empty list.
+     *
+     * <p>Use {@code SportState.leagueSeason()} for the current season. Sleeper cannot tell an
+     * unknown user from a user with no leagues; both give an empty list.
+     *
+     * @throws IllegalArgumentException if {@code userId} is blank, {@code sport} is null or
+     *     {@link Sport#UNKNOWN}, or {@code season} is not positive
+     */
+    public List<League> leagues(String userId, Sport sport, int season) {
+        Args.requireId("userId", userId);
+        Args.requireSport(sport);
+        Args.requirePositive("season", season);
+        return requester.get(
+                List.of("user", userId, "leagues", sport.wireValue(), Integer.toString(season)),
+                Map.of(), LEAGUE_LIST_TYPE, EmptyKind.LIST, null);
     }
 }
