@@ -6,6 +6,7 @@ module dev.brickfolio.jsleeper {
     exports dev.brickfolio.jsleeper;
     exports dev.brickfolio.jsleeper.api;
     exports dev.brickfolio.jsleeper.error;
+    exports dev.brickfolio.jsleeper.players;
     exports dev.brickfolio.jsleeper.model;
     exports dev.brickfolio.jsleeper.model.bracket;
     exports dev.brickfolio.jsleeper.util;

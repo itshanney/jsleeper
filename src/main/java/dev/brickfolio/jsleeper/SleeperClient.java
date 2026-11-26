@@ -70,8 +70,8 @@ public final class SleeperClient {
         return players;
     }
 
-    /** Clock for rate limiting, backoff and cache TTLs in later increments. */
-    Clock clock() {
+    /** Returns the clock this client uses for rate limiting, retries and cache lifetimes. */
+    public Clock clock() {
         return clock;
     }
 }
