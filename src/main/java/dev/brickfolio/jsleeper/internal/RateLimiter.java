@@ -3,6 +3,7 @@ package dev.brickfolio.jsleeper.internal;
 import dev.brickfolio.jsleeper.RateLimit;
 import dev.brickfolio.jsleeper.error.SleeperRateLimitException;
 import dev.brickfolio.jsleeper.error.SleeperTransportException;
+import java.lang.System.Logger.Level;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.Objects;
@@ -19,6 +20,8 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public final class RateLimiter {
 
+    private static final System.Logger LOG = System.getLogger("dev.brickfolio.jsleeper");
+    private static final Duration LONG_WAIT = Duration.ofSeconds(5);
     private static final double NANOS_PER_MILLI = 1_000_000.0;
     private static final double MILLIS_PER_MINUTE = 60_000.0;
 
@@ -63,6 +66,10 @@ public final class RateLimiter {
         }
         long waitNanos = reserve(method, path);
         if (waitNanos > 0) {
+            if (waitNanos > LONG_WAIT.toNanos()) {
+                LOG.log(Level.WARNING, "Client-side rate limit is delaying a request by {0} ms",
+                        waitNanos / 1_000_000);
+            }
             try {
                 sleeper.sleep(Duration.ofNanos(waitNanos));
             } catch (InterruptedException e) {

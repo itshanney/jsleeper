@@ -4,6 +4,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.brickfolio.jsleeper.RequestEvent;
+import dev.brickfolio.jsleeper.RequestListener;
+import dev.brickfolio.jsleeper.ResponseEvent;
 import dev.brickfolio.jsleeper.RetryPolicy;
 import dev.brickfolio.jsleeper.error.SleeperApiException;
 import dev.brickfolio.jsleeper.error.SleeperDeserializationException;
@@ -11,6 +14,7 @@ import dev.brickfolio.jsleeper.error.SleeperException;
 import dev.brickfolio.jsleeper.error.SleeperTransportException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.System.Logger.Level;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -27,18 +31,20 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.random.RandomGenerator;
 
 /**
  * Runs one GET end to end: builds the URI, sends it, classifies the response by the empty-result
  * rules, and deserialises the body. Retryable failures are retried per the {@link RetryPolicy}, and every
- * attempt first takes a token from the {@link RateLimiter}. No listeners yet.
+ * attempt first takes a token from the {@link RateLimiter} and is reported to the listener.
  *
  * <p>Response bodies are read fully into memory before parsing. The largest response (players,
  * about 5 MB) fits comfortably, and it makes error snippets trivial.
  */
 public final class Requester {
 
+    private static final System.Logger LOG = System.getLogger("dev.brickfolio.jsleeper");
     private static final String METHOD = "GET";
     private static final String JSON_CONTENT_TYPE = "application/json";
     private static final int STATUS_OK_MIN = 200;
@@ -57,6 +63,7 @@ public final class Requester {
     private final Clock clock;
     private final Sleeper sleeper;
     private final RateLimiter rateLimiter;
+    private final RequestListener listener;
     private final RandomGenerator random;
 
     /**
@@ -66,10 +73,12 @@ public final class Requester {
      * @param sleeper waits between attempts
      * @param random supplies backoff jitter
      * @param rateLimiter takes a token before every attempt, retries included
+     * @param listener told about every attempt; its failures never affect a request
      */
     public Requester(HttpClient httpClient, URI baseUri, ObjectMapper mapper,
             Duration requestTimeout, String userAgent, RetryPolicy retryPolicy, Clock clock,
-            Sleeper sleeper, RandomGenerator random, RateLimiter rateLimiter) {
+            Sleeper sleeper, RandomGenerator random, RateLimiter rateLimiter,
+            RequestListener listener) {
         this.httpClient = Objects.requireNonNull(httpClient, "httpClient");
         String base = Objects.requireNonNull(baseUri, "baseUri").toString();
         this.baseUri = base.endsWith("/") ? base.substring(0, base.length() - 1) : base;
@@ -81,11 +90,14 @@ public final class Requester {
         this.sleeper = Objects.requireNonNull(sleeper, "sleeper");
         this.random = Objects.requireNonNull(random, "random");
         this.rateLimiter = Objects.requireNonNull(rateLimiter, "rateLimiter");
+        this.listener = Objects.requireNonNull(listener, "listener");
     }
 
     /**
      * Performs a GET.
      *
+     * @param pathTemplate path with named placeholders for listeners and logs, such as
+     *     {@code /league/{league_id}}; never contains caller data
      * @param pathSegments unencoded path segments; each is percent-encoded individually
      * @param query unencoded query parameters, may be empty
      * @param type for {@code OPTIONAL} the element type {@code T}; otherwise the full result type
@@ -94,8 +106,8 @@ public final class Requester {
      * @return {@code Optional<T>} for OPTIONAL, otherwise the parsed value (or an empty collection)
      */
     @SuppressWarnings("unchecked")
-    public <R> R get(List<String> pathSegments, Map<String, String> query, JavaType type,
-            EmptyKind kind, Duration timeoutOverride) {
+    public <R> R get(String pathTemplate, List<String> pathSegments, Map<String, String> query,
+            JavaType type, EmptyKind kind, Duration timeoutOverride) {
         String path = encodePath(pathSegments);
         HttpRequest request = buildRequest(path, query,
                 timeoutOverride == null ? requestTimeout : requirePositive(timeoutOverride, "timeoutOverride"));
@@ -103,42 +115,61 @@ public final class Requester {
         for (int attempt = 1; ; attempt++) {
             // Outside the try: a client-side rate-limit failure must not itself be retried.
             rateLimiter.acquire(METHOD, path);
-            RetryHint hint = new RetryHint();
+            Attempt stats = new Attempt();
+            notifyRequest(new RequestEvent(METHOD, pathTemplate, path, attempt));
+            long startedNanos = System.nanoTime();
             try {
-                return (R) attemptOnce(request, path, type, kind, hint);
+                Object result = attemptOnce(request, path, type, kind, stats);
+                notifyResponse(pathTemplate, path, attempt, stats, startedNanos, null, null);
+                return (R) result;
             } catch (SleeperException failure) {
-                if (attempt >= retryPolicy.maxAttempts() || !isRetryable(failure)) {
+                Duration delay = null;
+                String reason = null;
+                if (attempt < retryPolicy.maxAttempts() && isRetryable(failure)) {
+                    // A null delay means Retry-After asks for longer than we are willing to block.
+                    delay = delayBeforeRetry(attempt, stats);
+                    reason = retryReason(failure);
+                }
+                boolean willRetry = delay != null;
+                notifyResponse(pathTemplate, path, attempt, stats, startedNanos, failure,
+                        willRetry ? reason : null);
+                if (!willRetry) {
                     throw failure;
                 }
-                Duration delay = delayBeforeRetry(attempt, hint);
-                if (delay == null) {
-                    // Retry-After asks for longer than we are willing to block.
-                    throw failure;
-                }
+                logRetry(pathTemplate, attempt, reason, delay);
                 pause(delay, path);
             }
         }
     }
 
-    /** Carries the response's {@code Retry-After} header out of a failed attempt. */
-    private static final class RetryHint {
+    /** What one attempt observed, for events and for the retry decision. */
+    private static final class Attempt {
+        private int status = -1;
+        private long bytes;
         private String retryAfter;
     }
 
+    private static String retryReason(SleeperException failure) {
+        return failure instanceof SleeperApiException api ? "status " + api.status() : "transport";
+    }
+
     private Object attemptOnce(HttpRequest request, String path, JavaType type, EmptyKind kind,
-            RetryHint hint) {
+            Attempt stats) {
         HttpResponse<InputStream> response = send(request, path);
         int status = response.statusCode();
+        stats.status = status;
         try (InputStream body = response.body()) {
             if (status >= STATUS_OK_MIN && status <= STATUS_OK_MAX) {
                 byte[] bytes = readAll(body, path);
+                stats.bytes = bytes.length;
                 return parseSuccess(bytes, path, type, kind, status);
             }
             byte[] bytes = readLimited(body, path);
+            stats.bytes = bytes.length;
             if (status == STATUS_NOT_FOUND && isJson(response)) {
                 return emptyResult(kind, path, status, bytes);
             }
-            hint.retryAfter = response.headers().firstValue("Retry-After").orElse(null);
+            stats.retryAfter = response.headers().firstValue("Retry-After").orElse(null);
             // A non-JSON 404 is an unknown route (a library bug or API change), never "no data".
             throw SleeperApiException.forStatus(METHOD, path, status, snippet(bytes));
         } catch (IOException e) {
@@ -159,8 +190,8 @@ public final class Requester {
     }
 
     /** Returns the wait before the next attempt, or null if {@code Retry-After} is too long. */
-    private Duration delayBeforeRetry(int failedAttempt, RetryHint hint) {
-        Duration retryAfter = parseRetryAfter(hint.retryAfter);
+    private Duration delayBeforeRetry(int failedAttempt, Attempt stats) {
+        Duration retryAfter = parseRetryAfter(stats.retryAfter);
         if (retryAfter != null) {
             return retryAfter.compareTo(RetryPolicy.MAX_RETRY_AFTER) > 0 ? null : retryAfter;
         }
@@ -186,6 +217,35 @@ public final class Requester {
         } catch (DateTimeParseException notDate) {
             return null;
         }
+    }
+
+    private void notifyRequest(RequestEvent event) {
+        try {
+            listener.onRequest(event);
+        } catch (RuntimeException e) {
+            LOG.log(Level.WARNING, "RequestListener.onRequest threw; ignoring", e);
+        }
+    }
+
+    private void notifyResponse(String pathTemplate, String path, int attempt, Attempt stats,
+            long startedNanos, SleeperException error, String retryReason) {
+        Duration elapsed = Duration.ofNanos(Math.max(0, System.nanoTime() - startedNanos));
+        LOG.log(Level.DEBUG, () -> "%s %s -> %s %dms".formatted(METHOD, pathTemplate,
+                stats.status < 0 ? "no response" : Integer.toString(stats.status), elapsed.toMillis()));
+        ResponseEvent event = new ResponseEvent(METHOD, pathTemplate, path, attempt,
+                stats.status < 0 ? OptionalInt.empty() : OptionalInt.of(stats.status), elapsed,
+                stats.bytes, Optional.ofNullable(error), retryReason != null,
+                Optional.ofNullable(retryReason));
+        try {
+            listener.onResponse(event);
+        } catch (RuntimeException e) {
+            LOG.log(Level.WARNING, "RequestListener.onResponse threw; ignoring", e);
+        }
+    }
+
+    private static void logRetry(String pathTemplate, int attempt, String reason, Duration delay) {
+        LOG.log(Level.INFO, () -> "Retrying %s %s after %s (attempt %d failed) in %dms"
+                .formatted(METHOD, pathTemplate, reason, attempt, delay.toMillis()));
     }
 
     private void pause(Duration delay, String path) {

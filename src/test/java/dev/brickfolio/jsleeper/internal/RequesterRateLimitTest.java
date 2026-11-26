@@ -11,6 +11,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import dev.brickfolio.jsleeper.RateLimit;
+import dev.brickfolio.jsleeper.RequestListener;
 import dev.brickfolio.jsleeper.RetryPolicy;
 import dev.brickfolio.jsleeper.error.SleeperRateLimitException;
 import java.net.URI;
@@ -44,11 +45,11 @@ class RequesterRateLimitTest {
     private Requester requester(RateLimit limit, RetryPolicy retry) {
         return new Requester(HttpClient.newHttpClient(), URI.create(wm.baseUrl() + "/v1"), mapper,
                 Duration.ofSeconds(5), "ua", retry, clock, sleeper, new Random(1),
-                new RateLimiter(limit, clock, sleeper));
+                new RateLimiter(limit, clock, sleeper), RequestListener.noop());
     }
 
     private Optional<Thing> call(Requester r) {
-        return r.get(List.of("thing"), Map.of(), mapper.constructType(Thing.class), EmptyKind.OPTIONAL, null);
+        return r.get("/t", List.of("thing"), Map.of(), mapper.constructType(Thing.class), EmptyKind.OPTIONAL, null);
     }
 
     private void stub(int status, String body) {

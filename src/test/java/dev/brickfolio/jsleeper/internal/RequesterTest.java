@@ -11,6 +11,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
+import dev.brickfolio.jsleeper.RequestListener;
 import dev.brickfolio.jsleeper.RetryPolicy;
 import dev.brickfolio.jsleeper.error.SleeperApiException;
 import dev.brickfolio.jsleeper.error.SleeperBadRequestException;
@@ -47,7 +48,7 @@ class RequesterTest {
     private Requester requester(URI base, Duration timeout) {
         return new Requester(http, base, mapper, timeout, USER_AGENT, RetryPolicy.none(),
                 java.time.Clock.systemUTC(), Sleeper.real(), new java.util.Random(1),
-                new RateLimiter(dev.brickfolio.jsleeper.RateLimit.disabled(), java.time.Clock.systemUTC(), Sleeper.real()));
+                new RateLimiter(dev.brickfolio.jsleeper.RateLimit.disabled(), java.time.Clock.systemUTC(), Sleeper.real()), RequestListener.noop());
     }
 
     private Requester requester() {
@@ -72,7 +73,7 @@ class RequesterTest {
     }
 
     private <R> R call(String path, JavaType type, EmptyKind kind) {
-        return requester().get(List.of(path), Map.of(), type, kind, null);
+        return requester().get("/t", List.of(path), Map.of(), type, kind, null);
     }
 
     // ---- 200 responses ----
@@ -310,7 +311,7 @@ class RequesterTest {
         }
         Requester r = requester(URI.create("http://localhost:" + closedPort), Duration.ofSeconds(2));
 
-        assertThatThrownBy(() -> r.get(List.of("thing"), Map.of(), type(Thing.class),
+        assertThatThrownBy(() -> r.get("/t", List.of("thing"), Map.of(), type(Thing.class),
                 EmptyKind.OPTIONAL, null))
                 .isExactlyInstanceOf(SleeperTransportException.class)
                 .hasCauseInstanceOf(IOException.class);
@@ -322,7 +323,7 @@ class RequesterTest {
                 .withHeader("Content-Type", "application/json").withBody("{}").withFixedDelay(2000)));
         Requester r = requester(URI.create(wm.baseUrl() + "/v1"), Duration.ofMillis(300));
 
-        assertThatThrownBy(() -> r.get(List.of("slow"), Map.of(), type(Thing.class),
+        assertThatThrownBy(() -> r.get("/t", List.of("slow"), Map.of(), type(Thing.class),
                 EmptyKind.OPTIONAL, null))
                 .isExactlyInstanceOf(SleeperTransportException.class);
     }
@@ -333,7 +334,7 @@ class RequesterTest {
                 .withHeader("Content-Type", "application/json").withBody("{}").withFixedDelay(1000)));
         Requester r = requester(URI.create(wm.baseUrl() + "/v1"), Duration.ofSeconds(10));
 
-        assertThatThrownBy(() -> r.get(List.of("slow"), Map.of(), type(Thing.class),
+        assertThatThrownBy(() -> r.get("/t", List.of("slow"), Map.of(), type(Thing.class),
                 EmptyKind.OPTIONAL, Duration.ofMillis(200)))
                 .isExactlyInstanceOf(SleeperTransportException.class);
     }
@@ -359,7 +360,7 @@ class RequesterTest {
     void path_segments_are_percent_encoded_individually() {
         stubJson("/v1/user/some%20user%2F%C3%BC", 200, "{\"name\":\"u\"}");
 
-        Optional<Thing> result = requester().get(List.of("user", "some user/ü"), Map.of(),
+        Optional<Thing> result = requester().get("/t", List.of("user", "some user/ü"), Map.of(),
                 type(Thing.class), EmptyKind.OPTIONAL, null);
 
         assertThat(result).isPresent();
@@ -370,7 +371,7 @@ class RequesterTest {
     void plus_in_a_segment_is_encoded_not_treated_as_space() {
         stubJson("/v1/user/a%2Bb", 200, "{\"name\":\"u\"}");
 
-        Optional<Thing> result = requester().get(List.of("user", "a+b"), Map.of(),
+        Optional<Thing> result = requester().get("/t", List.of("user", "a+b"), Map.of(),
                 type(Thing.class), EmptyKind.OPTIONAL, null);
 
         assertThat(result).isPresent();
@@ -383,7 +384,7 @@ class RequesterTest {
         query.put("position", "QB");
         query.put("note", "a b&c");
 
-        Map<String, Thing> result = requester().get(List.of("players"), query,
+        Map<String, Thing> result = requester().get("/t", List.of("players"), query,
                 mapOf(Thing.class), EmptyKind.MAP, null);
 
         assertThat(result).isEmpty();
@@ -406,7 +407,7 @@ class RequesterTest {
         stubJson("/v1/thing", 200, "{}");
         Requester r = requester(URI.create(wm.baseUrl() + "/v1/"), Duration.ofSeconds(5));
 
-        Optional<Thing> result = r.get(List.of("thing"), Map.of(), type(Thing.class),
+        Optional<Thing> result = r.get("/t", List.of("thing"), Map.of(), type(Thing.class),
                 EmptyKind.OPTIONAL, null);
 
         assertThat(result).isPresent();

@@ -62,7 +62,7 @@ public final class LeaguesApi {
      */
     public Optional<League> get(String leagueId) {
         Args.requireId("leagueId", leagueId);
-        return requester.get(List.of("league", leagueId), Map.of(), LEAGUE_TYPE,
+        return requester.get("/league/{league_id}", List.of("league", leagueId), Map.of(), LEAGUE_TYPE,
                 EmptyKind.OPTIONAL, null);
     }
 
@@ -73,7 +73,7 @@ public final class LeaguesApi {
      */
     public List<LeagueUser> users(String leagueId) {
         Args.requireId("leagueId", leagueId);
-        return requester.get(List.of("league", leagueId, "users"), Map.of(), LEAGUE_USER_LIST_TYPE,
+        return requester.get("/league/{league_id}/users", List.of("league", leagueId, "users"), Map.of(), LEAGUE_USER_LIST_TYPE,
                 EmptyKind.LIST, null);
     }
 
@@ -84,7 +84,7 @@ public final class LeaguesApi {
      */
     public List<Roster> rosters(String leagueId) {
         Args.requireId("leagueId", leagueId);
-        return requester.get(List.of("league", leagueId, "rosters"), Map.of(), ROSTER_LIST_TYPE,
+        return requester.get("/league/{league_id}/rosters", List.of("league", leagueId, "rosters"), Map.of(), ROSTER_LIST_TYPE,
                 EmptyKind.LIST, null);
     }
 
@@ -98,7 +98,7 @@ public final class LeaguesApi {
     public List<Matchup> matchups(String leagueId, int week) {
         Args.requireId("leagueId", leagueId);
         Args.requirePositive("week", week);
-        return requester.get(List.of("league", leagueId, "matchups", Integer.toString(week)),
+        return requester.get("/league/{league_id}/matchups/{week}", List.of("league", leagueId, "matchups", Integer.toString(week)),
                 Map.of(), MATCHUP_LIST_TYPE, EmptyKind.LIST, null);
     }
 
@@ -124,7 +124,7 @@ public final class LeaguesApi {
 
     private List<BracketMatch> bracket(String leagueId, String segment) {
         Args.requireId("leagueId", leagueId);
-        return requester.get(List.of("league", leagueId, segment), Map.of(), BRACKET_LIST_TYPE,
+        return requester.get("/league/{league_id}/" + segment, List.of("league", leagueId, segment), Map.of(), BRACKET_LIST_TYPE,
                 EmptyKind.LIST, null);
     }
 
@@ -138,7 +138,7 @@ public final class LeaguesApi {
     public List<Transaction> transactions(String leagueId, int week) {
         Args.requireId("leagueId", leagueId);
         Args.requirePositive("week", week);
-        return requester.get(List.of("league", leagueId, "transactions", Integer.toString(week)),
+        return requester.get("/league/{league_id}/transactions/{week}", List.of("league", leagueId, "transactions", Integer.toString(week)),
                 Map.of(), TRANSACTION_LIST_TYPE, EmptyKind.LIST, null);
     }
 
@@ -150,7 +150,7 @@ public final class LeaguesApi {
      */
     public List<TradedPick> tradedPicks(String leagueId) {
         Args.requireId("leagueId", leagueId);
-        return requester.get(List.of("league", leagueId, "traded_picks"), Map.of(),
+        return requester.get("/league/{league_id}/traded_picks", List.of("league", leagueId, "traded_picks"), Map.of(),
                 TRADED_PICK_LIST_TYPE, EmptyKind.LIST, null);
     }
 
@@ -163,7 +163,7 @@ public final class LeaguesApi {
      */
     public List<Draft> drafts(String leagueId) {
         Args.requireId("leagueId", leagueId);
-        return requester.get(List.of("league", leagueId, "drafts"), Map.of(), DRAFT_LIST_TYPE,
+        return requester.get("/league/{league_id}/drafts", List.of("league", leagueId, "drafts"), Map.of(), DRAFT_LIST_TYPE,
                 EmptyKind.LIST, null);
     }
 }

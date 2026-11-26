@@ -35,7 +35,7 @@ public final class StateApi {
         if (sport == Sport.UNKNOWN) {
             throw new IllegalArgumentException("sport must not be UNKNOWN");
         }
-        return requester.get(List.of("state", sport.wireValue()), Map.of(), SPORT_STATE_TYPE,
+        return requester.get("/state/{sport}", List.of("state", sport.wireValue()), Map.of(), SPORT_STATE_TYPE,
                 EmptyKind.REQUIRED, null);
     }
 }

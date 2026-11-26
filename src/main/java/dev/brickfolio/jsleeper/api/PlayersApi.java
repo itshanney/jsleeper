@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 import dev.brickfolio.jsleeper.internal.EmptyKind;
 import dev.brickfolio.jsleeper.internal.Requester;
+import dev.brickfolio.jsleeper.internal.UnfilteredFetchWatch;
 import dev.brickfolio.jsleeper.model.Player;
 import dev.brickfolio.jsleeper.model.Sport;
 import dev.brickfolio.jsleeper.model.TrendType;
@@ -25,11 +26,13 @@ public final class PlayersApi {
             TYPES.constructCollectionType(List.class, TrendingPlayer.class);
 
     private final Requester requester;
+    private final UnfilteredFetchWatch unfilteredWatch;
 
     /** For use by {@link dev.brickfolio.jsleeper.SleeperClient} only. */
     @SuppressWarnings("exports")
-    public PlayersApi(Requester requester) {
+    public PlayersApi(Requester requester, UnfilteredFetchWatch unfilteredWatch) {
         this.requester = Objects.requireNonNull(requester, "requester");
+        this.unfilteredWatch = Objects.requireNonNull(unfilteredWatch, "unfilteredWatch");
     }
 
     /**
@@ -43,7 +46,8 @@ public final class PlayersApi {
      */
     public Map<String, Player> all(Sport sport) {
         Args.requireSport(sport);
-        return requester.get(List.of("players", sport.wireValue()), Map.of(), PLAYER_MAP_TYPE,
+        unfilteredWatch.onUnfilteredFetch();
+        return requester.get("/players/{sport}", List.of("players", sport.wireValue()), Map.of(), PLAYER_MAP_TYPE,
                 EmptyKind.MAP, UNFILTERED_TIMEOUT);
     }
 
@@ -57,7 +61,10 @@ public final class PlayersApi {
     public Map<String, Player> all(Sport sport, PlayerQuery query) {
         Args.requireSport(sport);
         Objects.requireNonNull(query, "query");
-        return requester.get(List.of("players", sport.wireValue()), query.toQueryParameters(),
+        if (query.isUnfiltered()) {
+            unfilteredWatch.onUnfilteredFetch();
+        }
+        return requester.get("/players/{sport}", List.of("players", sport.wireValue()), query.toQueryParameters(),
                 PLAYER_MAP_TYPE, EmptyKind.MAP, query.isUnfiltered() ? UNFILTERED_TIMEOUT : null);
     }
 
@@ -80,7 +87,8 @@ public final class PlayersApi {
         Args.requireSport(sport);
         Objects.requireNonNull(type, "type");
         Objects.requireNonNull(query, "query");
-        return requester.get(List.of("players", sport.wireValue(), "trending", type.wireValue()),
+        return requester.get("/players/{sport}/trending/{type}",
+                List.of("players", sport.wireValue(), "trending", type.wireValue()),
                 query.toQueryParameters(), TRENDING_LIST_TYPE, EmptyKind.LIST, null);
     }
 }

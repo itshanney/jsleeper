@@ -42,7 +42,7 @@ public final class UsersApi {
      */
     public Optional<User> get(String usernameOrId) {
         Args.requireId("usernameOrId", usernameOrId);
-        return requester.get(List.of("user", usernameOrId), Map.of(), USER_TYPE,
+        return requester.get("/user/{username_or_user_id}", List.of("user", usernameOrId), Map.of(), USER_TYPE,
                 EmptyKind.OPTIONAL, null);
     }
 
@@ -60,7 +60,7 @@ public final class UsersApi {
         Args.requireId("userId", userId);
         Args.requireSport(sport);
         Args.requirePositive("season", season);
-        return requester.get(
+        return requester.get("/user/{user_id}/leagues/{sport}/{season}",
                 List.of("user", userId, "leagues", sport.wireValue(), Integer.toString(season)),
                 Map.of(), LEAGUE_LIST_TYPE, EmptyKind.LIST, null);
     }
@@ -77,7 +77,7 @@ public final class UsersApi {
         Args.requireId("userId", userId);
         Args.requireSport(sport);
         Args.requirePositive("season", season);
-        return requester.get(
+        return requester.get("/user/{user_id}/drafts/{sport}/{season}",
                 List.of("user", userId, "drafts", sport.wireValue(), Integer.toString(season)),
                 Map.of(), DRAFT_LIST_TYPE, EmptyKind.LIST, null);
     }

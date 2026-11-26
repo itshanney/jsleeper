@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
+import dev.brickfolio.jsleeper.RequestListener;
 import dev.brickfolio.jsleeper.RetryPolicy;
 import dev.brickfolio.jsleeper.error.SleeperApiException;
 import dev.brickfolio.jsleeper.error.SleeperBadRequestException;
@@ -69,7 +70,7 @@ class RequesterRetryTest {
     private Requester requester(RetryPolicy policy, Sleeper sleeper, RandomGenerator random, URI base) {
         return new Requester(HttpClient.newHttpClient(), base, mapper, Duration.ofSeconds(5), "ua",
                 policy, clock, sleeper, random,
-                new RateLimiter(dev.brickfolio.jsleeper.RateLimit.disabled(), clock, sleeper));
+                new RateLimiter(dev.brickfolio.jsleeper.RateLimit.disabled(), clock, sleeper), RequestListener.noop());
     }
 
     private Requester requester(RetryPolicy policy) {
@@ -78,7 +79,7 @@ class RequesterRetryTest {
 
     private Optional<Thing> call(Requester r) {
         JavaType type = mapper.constructType(Thing.class);
-        return r.get(List.of("thing"), Map.of(), type, EmptyKind.OPTIONAL, null);
+        return r.get("/t", List.of("thing"), Map.of(), type, EmptyKind.OPTIONAL, null);
     }
 
     private void stubStatus(int status, String body) {

@@ -6,6 +6,7 @@ import dev.brickfolio.jsleeper.api.PlayersApi;
 import dev.brickfolio.jsleeper.api.StateApi;
 import dev.brickfolio.jsleeper.api.UsersApi;
 import dev.brickfolio.jsleeper.internal.Requester;
+import dev.brickfolio.jsleeper.internal.UnfilteredFetchWatch;
 import java.time.Clock;
 
 /**
@@ -30,7 +31,7 @@ public final class SleeperClient {
         this.users = new UsersApi(requester);
         this.leagues = new LeaguesApi(requester);
         this.drafts = new DraftsApi(requester);
-        this.players = new PlayersApi(requester);
+        this.players = new PlayersApi(requester, new UnfilteredFetchWatch(clock));
         this.clock = clock;
     }
 

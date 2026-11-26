@@ -220,6 +220,21 @@ class SleeperClientTest {
     }
 
     @Test
+    void client_listener_receives_events_for_a_call() {
+        stubState("nfl", 200, LIVE_STATE_NFL);
+        java.util.List<String> templates = new java.util.ArrayList<>();
+
+        builder().listener(new RequestListener() {
+            @Override
+            public void onRequest(RequestEvent event) {
+                templates.add(event.pathTemplate());
+            }
+        }).build().state().get(Sport.NFL);
+
+        assertThat(templates).containsExactly("/state/{sport}");
+    }
+
+    @Test
     void null_setters_throw_npe() {
         SleeperClientBuilder b = SleeperClient.builder();
 
@@ -230,5 +245,8 @@ class SleeperClientTest {
         assertThatThrownBy(() -> b.userAgent(null)).isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> b.objectMapper(null)).isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> b.clock(null)).isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> b.listener(null)).isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> b.retryPolicy(null)).isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> b.rateLimit(null)).isInstanceOf(NullPointerException.class);
     }
 }

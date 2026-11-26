@@ -37,7 +37,7 @@ public final class DraftsApi {
      */
     public Optional<Draft> get(String draftId) {
         Args.requireId("draftId", draftId);
-        return requester.get(List.of("draft", draftId), Map.of(), DRAFT_TYPE, EmptyKind.OPTIONAL, null);
+        return requester.get("/draft/{draft_id}", List.of("draft", draftId), Map.of(), DRAFT_TYPE, EmptyKind.OPTIONAL, null);
     }
 
     /**
@@ -47,7 +47,7 @@ public final class DraftsApi {
      */
     public List<DraftPick> picks(String draftId) {
         Args.requireId("draftId", draftId);
-        return requester.get(List.of("draft", draftId, "picks"), Map.of(), PICK_LIST_TYPE,
+        return requester.get("/draft/{draft_id}/picks", List.of("draft", draftId, "picks"), Map.of(), PICK_LIST_TYPE,
                 EmptyKind.LIST, null);
     }
 
@@ -59,7 +59,7 @@ public final class DraftsApi {
      */
     public List<TradedPick> tradedPicks(String draftId) {
         Args.requireId("draftId", draftId);
-        return requester.get(List.of("draft", draftId, "traded_picks"), Map.of(),
+        return requester.get("/draft/{draft_id}/traded_picks", List.of("draft", draftId, "traded_picks"), Map.of(),
                 TRADED_PICK_LIST_TYPE, EmptyKind.LIST, null);
     }
 }

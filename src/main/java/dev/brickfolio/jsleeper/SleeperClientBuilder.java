@@ -30,6 +30,7 @@ public final class SleeperClientBuilder {
     private Clock clock = Clock.systemUTC();
     private RetryPolicy retryPolicy = RetryPolicy.defaults();
     private RateLimit rateLimit = RateLimit.defaults();
+    private RequestListener listener = RequestListener.noop();
 
     SleeperClientBuilder() {}
 
@@ -84,6 +85,12 @@ public final class SleeperClientBuilder {
         return this;
     }
 
+    /** Sets the listener told about every request attempt. Default: does nothing. One listener only; compose your own. */
+    public SleeperClientBuilder listener(RequestListener listener) {
+        this.listener = Objects.requireNonNull(listener, "listener");
+        return this;
+    }
+
     /** Sets the clock used by time-dependent components. Default UTC system clock. */
     public SleeperClientBuilder clock(Clock clock) {
         this.clock = Objects.requireNonNull(clock, "clock");
@@ -107,7 +114,7 @@ public final class SleeperClientBuilder {
                 ? JsonCodec.copyOf(objectMapper) : JsonCodec.create();
         Requester requester = new Requester(client, base, mapper, requestTimeout, userAgent,
                 retryPolicy, clock, Sleeper.real(), threadSafeRandom(),
-                new RateLimiter(rateLimit, clock, Sleeper.real()));
+                new RateLimiter(rateLimit, clock, Sleeper.real()), listener);
         return new SleeperClient(requester, clock);
     }
 
