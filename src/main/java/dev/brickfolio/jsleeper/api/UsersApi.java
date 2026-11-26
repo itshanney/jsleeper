@@ -81,4 +81,23 @@ public final class UsersApi {
                 List.of("user", userId, "drafts", sport.wireValue(), Integer.toString(season)),
                 Map.of(), DRAFT_LIST_TYPE, EmptyKind.LIST, null);
     }
+
+    /**
+     * Same as {@link #leagues(String, Sport, int)} with the season as a string, as Sleeper's
+     * responses carry it (for example {@code SportState.leagueSeason()}).
+     *
+     * @throws IllegalArgumentException if {@code season} is blank, not a number, or not positive
+     */
+    public List<League> leagues(String userId, Sport sport, String season) {
+        return leagues(userId, sport, Args.parseSeason(season));
+    }
+
+    /**
+     * Same as {@link #drafts(String, Sport, int)} with the season as a string.
+     *
+     * @throws IllegalArgumentException if {@code season} is blank, not a number, or not positive
+     */
+    public List<Draft> drafts(String userId, Sport sport, String season) {
+        return drafts(userId, sport, Args.parseSeason(season));
+    }
 }

@@ -9,6 +9,8 @@ import dev.brickfolio.jsleeper.model.League;
 import dev.brickfolio.jsleeper.model.LeagueUser;
 import dev.brickfolio.jsleeper.model.Matchup;
 import dev.brickfolio.jsleeper.model.Roster;
+import dev.brickfolio.jsleeper.model.Sport;
+import dev.brickfolio.jsleeper.model.SportState;
 import dev.brickfolio.jsleeper.model.TradedPick;
 import dev.brickfolio.jsleeper.model.Transaction;
 import dev.brickfolio.jsleeper.model.bracket.BracketMatch;
@@ -48,11 +50,13 @@ public final class LeaguesApi {
             TYPES.constructCollectionType(List.class, Draft.class);
 
     private final Requester requester;
+    private final StateApi state;
 
     /** For use by {@link dev.brickfolio.jsleeper.SleeperClient} only. */
     @SuppressWarnings("exports")
-    public LeaguesApi(Requester requester) {
+    public LeaguesApi(Requester requester, StateApi state) {
         this.requester = Objects.requireNonNull(requester, "requester");
+        this.state = Objects.requireNonNull(state, "state");
     }
 
     /**
@@ -165,5 +169,39 @@ public final class LeaguesApi {
         Args.requireId("leagueId", leagueId);
         return requester.get("/league/{league_id}/drafts", List.of("league", leagueId, "drafts"), Map.of(), DRAFT_LIST_TYPE,
                 EmptyKind.LIST, null);
+    }
+
+    /**
+     * Returns the matchups of the week Sleeper currently displays. <b>Costs two HTTP calls</b>:
+     * {@code /state/nfl} for {@code display_week} (not {@code week}), then the matchups.
+     *
+     * @throws IllegalArgumentException if {@code leagueId} is null or blank
+     * @throws IllegalStateException if Sleeper reports no display week, as in the off-season
+     */
+    public List<Matchup> matchups(String leagueId) {
+        Args.requireId("leagueId", leagueId);
+        return matchups(leagueId, currentDisplayWeek());
+    }
+
+    /**
+     * Returns the transactions of the week Sleeper currently displays. <b>Costs two HTTP calls</b>:
+     * {@code /state/nfl} for {@code display_week} (not {@code week}), then the transactions.
+     *
+     * @throws IllegalArgumentException if {@code leagueId} is null or blank
+     * @throws IllegalStateException if Sleeper reports no display week, as in the off-season
+     */
+    public List<Transaction> transactions(String leagueId) {
+        Args.requireId("leagueId", leagueId);
+        return transactions(leagueId, currentDisplayWeek());
+    }
+
+    private int currentDisplayWeek() {
+        SportState nfl = state.get(Sport.NFL);
+        Integer displayWeek = nfl.displayWeek();
+        if (displayWeek == null || displayWeek < 1) {
+            throw new IllegalStateException("Sleeper reports no current week (display_week was "
+                    + displayWeek + "), as in the off-season; pass an explicit week instead");
+        }
+        return displayWeek;
     }
 }

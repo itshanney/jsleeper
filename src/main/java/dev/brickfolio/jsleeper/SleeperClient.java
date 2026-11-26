@@ -29,7 +29,7 @@ public final class SleeperClient {
     SleeperClient(Requester requester, Clock clock) {
         this.state = new StateApi(requester);
         this.users = new UsersApi(requester);
-        this.leagues = new LeaguesApi(requester);
+        this.leagues = new LeaguesApi(requester, state);
         this.drafts = new DraftsApi(requester);
         this.players = new PlayersApi(requester, new UnfilteredFetchWatch(clock));
         this.clock = clock;

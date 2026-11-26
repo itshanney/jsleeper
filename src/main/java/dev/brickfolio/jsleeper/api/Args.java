@@ -27,4 +27,18 @@ final class Args {
         }
         return value;
     }
+
+    /** Parses a season such as "2026"; the result must be positive. */
+    static int parseSeason(String season) {
+        if (season == null || season.isBlank()) {
+            throw new IllegalArgumentException("season must not be blank");
+        }
+        int parsed;
+        try {
+            parsed = Integer.parseInt(season.trim());
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("season must be a number such as \"2026\": " + season, e);
+        }
+        return requirePositive("season", parsed);
+    }
 }
