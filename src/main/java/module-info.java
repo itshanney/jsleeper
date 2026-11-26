@@ -7,8 +7,10 @@ module dev.brickfolio.jsleeper {
     exports dev.brickfolio.jsleeper.api;
     exports dev.brickfolio.jsleeper.error;
     exports dev.brickfolio.jsleeper.model;
+    exports dev.brickfolio.jsleeper.model.bracket;
     exports dev.brickfolio.jsleeper.util;
 
     // Jackson reflects into model records; each new model package needs its own opens line.
     opens dev.brickfolio.jsleeper.model to com.fasterxml.jackson.databind;
+    opens dev.brickfolio.jsleeper.model.bracket to com.fasterxml.jackson.databind;
 }
