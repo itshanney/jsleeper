@@ -1,0 +1,165 @@
+[
+  {
+    "avatar": "00000000000000000000000000000000",
+    "display_name": "User 1",
+    "is_bot": false,
+    "is_owner": null,
+    "league_id": "1391586806968889344",
+    "metadata": {
+      "allow_pn": "on",
+      "archived": "off",
+      "mention_pn": "on"
+    },
+    "settings": null,
+    "user_id": "470794171712532480"
+  },
+  {
+    "avatar": "00000000000000000000000000000000",
+    "display_name": "User 2",
+    "is_bot": false,
+    "is_owner": null,
+    "league_id": "1391586806968889344",
+    "metadata": {
+      "allow_pn": "on",
+      "mention_pn": "on"
+    },
+    "settings": null,
+    "user_id": "736395779677282304"
+  },
+  {
+    "avatar": "00000000000000000000000000000000",
+    "display_name": "User 3",
+    "is_bot": false,
+    "is_owner": null,
+    "league_id": "1391586806968889344",
+    "metadata": {
+      "allow_pn": "on",
+      "mention_pn": "on"
+    },
+    "settings": null,
+    "user_id": "741383430343933952"
+  },
+  {
+    "avatar": "00000000000000000000000000000000",
+    "display_name": "User 4",
+    "is_bot": false,
+    "is_owner": null,
+    "league_id": "1391586806968889344",
+    "metadata": {
+      "allow_pn": "on",
+      "allow_sms": "on",
+      "mention_pn": "on"
+    },
+    "settings": null,
+    "user_id": "1002321326117376000"
+  },
+  {
+    "avatar": "00000000000000000000000000000000",
+    "display_name": "User 5",
+    "is_bot": false,
+    "is_owner": null,
+    "league_id": "1391586806968889344",
+    "metadata": {
+      "allow_pn": "on",
+      "mention_pn": "on"
+    },
+    "settings": null,
+    "user_id": "1004499876505346048"
+  },
+  {
+    "avatar": "00000000000000000000000000000000",
+    "display_name": "User 6",
+    "is_bot": false,
+    "is_owner": null,
+    "league_id": "1391586806968889344",
+    "metadata": {
+      "allow_pn": "on",
+      "mention_pn": "on"
+    },
+    "settings": null,
+    "user_id": "1134367428948971520"
+  },
+  {
+    "avatar": "00000000000000000000000000000000",
+    "display_name": "User 7",
+    "is_bot": false,
+    "is_owner": null,
+    "league_id": "1391586806968889344",
+    "metadata": {
+      "allow_pn": "on",
+      "mention_pn": "on",
+      "team_name": "Team 7"
+    },
+    "settings": null,
+    "user_id": "1134385218795892736"
+  },
+  {
+    "avatar": "00000000000000000000000000000000",
+    "display_name": "User 8",
+    "is_bot": false,
+    "is_owner": null,
+    "league_id": "1391586806968889344",
+    "metadata": {
+      "allow_pn": "on",
+      "mention_pn": "on",
+      "team_name": "Team 8"
+    },
+    "settings": null,
+    "user_id": "1134547096784437248"
+  },
+  {
+    "avatar": "00000000000000000000000000000000",
+    "display_name": "User 9",
+    "is_bot": false,
+    "is_owner": null,
+    "league_id": "1391586806968889344",
+    "metadata": {
+      "allow_pn": "on",
+      "mention_pn": "on",
+      "team_name": "Team 9"
+    },
+    "settings": null,
+    "user_id": "1137085379838386176"
+  },
+  {
+    "avatar": "00000000000000000000000000000000",
+    "display_name": "User 10",
+    "is_bot": false,
+    "is_owner": true,
+    "league_id": "1391586806968889344",
+    "metadata": {
+      "allow_pn": "on",
+      "mention_pn": "on",
+      "team_name": "Team 10"
+    },
+    "settings": null,
+    "user_id": "1266175725602353152"
+  },
+  {
+    "avatar": "00000000000000000000000000000000",
+    "display_name": "User 11",
+    "is_bot": false,
+    "is_owner": null,
+    "league_id": "1391586806968889344",
+    "metadata": {
+      "allow_pn": "on",
+      "mention_pn": "on"
+    },
+    "settings": null,
+    "user_id": "1266178392475054080"
+  },
+  {
+    "avatar": null,
+    "display_name": "User 12",
+    "is_bot": false,
+    "is_owner": null,
+    "league_id": "1391586806968889344",
+    "metadata": {
+      "allow_pn": "on",
+      "mention_pn": "on",
+      "team_name": "Team 12"
+    },
+    "settings": null,
+    "user_id": "1393762956684062720"
+  }
+]

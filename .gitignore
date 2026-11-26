@@ -1,5 +1,14 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
 # Compiled class file
 *.class
+
+# Build output
+build/
+.gradle/
 
 # Log file
 *.log
@@ -7,11 +16,34 @@
 # BlueJ files
 *.ctxt
 
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# VS Code
+.vscode/
+
+# Environment
+.env
+.envrc
+
+# Eclipse
+.classpath
+.project
+.settings/
+bin/
+
+# Claude
+.claude/
+
 # Mobile Tools for Java (J2ME)
 .mtj.tmp/
 
 # Package Files #
 *.jar
+!gradle/wrapper/gradle-wrapper.jar
 *.war
 *.nar
 *.ear
@@ -22,3 +54,9 @@
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 replay_pid*
+
+# Python bytecode (loadtest/)
+loadtest/__pycache__/
+
+# JVM heap dumps from an out-of-memory Gradle daemon
+*.hprof
