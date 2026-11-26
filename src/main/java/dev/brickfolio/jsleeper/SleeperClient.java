@@ -1,0 +1,44 @@
+package dev.brickfolio.jsleeper;
+
+import dev.brickfolio.jsleeper.api.StateApi;
+import dev.brickfolio.jsleeper.internal.Requester;
+import java.time.Clock;
+
+/**
+ * Entry point of the library. Build once and share: instances are immutable and thread-safe.
+ *
+ * <pre>{@code
+ * SleeperClient sleeper = SleeperClient.create();
+ * SportState nfl = sleeper.state().get(Sport.NFL);
+ * }</pre>
+ */
+public final class SleeperClient {
+
+    private final StateApi state;
+    private final Clock clock;
+
+    SleeperClient(Requester requester, Clock clock) {
+        this.state = new StateApi(requester);
+        this.clock = clock;
+    }
+
+    /** Creates a client with default settings (production base URL, no network call). */
+    public static SleeperClient create() {
+        return builder().build();
+    }
+
+    /** Returns a builder for a customised client. */
+    public static SleeperClientBuilder builder() {
+        return new SleeperClientBuilder();
+    }
+
+    /** Sport state endpoint. */
+    public StateApi state() {
+        return state;
+    }
+
+    /** Clock for rate limiting, backoff and cache TTLs in later increments. */
+    Clock clock() {
+        return clock;
+    }
+}

@@ -12,6 +12,14 @@
  *       {@code status} and {@code statusRaw}), so a value that mapped to {@code UNKNOWN} can still
  *       be read.</li>
  * </ul>
+ * <h2>Keeping the raw string</h2>
+ * An enum has a static {@code fromWire(String)} that delegates to
+ * {@link dev.brickfolio.jsleeper.model.WireEnum#fromWire(Class, String, Enum)} and returns
+ * {@code UNKNOWN} for anything unrecognised. A record with an enum field declares a
+ * {@code @JsonCreator} static factory that takes the wire value as a {@code String}, stores it
+ * (for example {@code seasonTypeRaw}) and derives the enum with {@code fromWire}. The factory
+ * exists because one JSON property feeds two record components.
+ * <p>
  * Jackson reads these records reflectively, so every package under {@code model} must be
  * {@code opens}ed to {@code com.fasterxml.jackson.databind} in {@code module-info.java}.
  */

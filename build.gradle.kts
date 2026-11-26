@@ -32,6 +32,12 @@ tasks.compileJava {
     options.encoding = "UTF-8"
 }
 
+tasks.jar {
+    manifest {
+        attributes("Implementation-Version" to project.version.toString())
+    }
+}
+
 tasks.test {
     useJUnitPlatform()
 }
