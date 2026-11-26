@@ -16,9 +16,9 @@ Live responses from the Sleeper API (https://api.sleeper.app/v1), recorded by
   descriptions; and every string in transaction `metadata` notes. Users are
   numbered consistently (`user1`, `User 1`, `Team 1`). Numeric IDs are kept so
   the data stays internally consistent.
-- Edge cases the live league does not contain (bracket `*_from`, FAAB waiver,
-  blank `picked_by`, null `matchup_id`) are hand-trimmed from real responses
-  and checked in separately.
+- Files named `edge_*` are hand-edited from real rows to cover cases the live
+  league does not contain (for example a null `matchup_id` or non-null
+  `custom_points`). The script never writes or overwrites them.
 
 ## Re-recording
 

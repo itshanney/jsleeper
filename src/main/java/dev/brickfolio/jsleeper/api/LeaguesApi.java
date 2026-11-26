@@ -6,6 +6,7 @@ import dev.brickfolio.jsleeper.internal.EmptyKind;
 import dev.brickfolio.jsleeper.internal.Requester;
 import dev.brickfolio.jsleeper.model.League;
 import dev.brickfolio.jsleeper.model.LeagueUser;
+import dev.brickfolio.jsleeper.model.Matchup;
 import dev.brickfolio.jsleeper.model.Roster;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +28,9 @@ public final class LeaguesApi {
 
     private static final JavaType ROSTER_LIST_TYPE =
             TYPES.constructCollectionType(List.class, Roster.class);
+
+    private static final JavaType MATCHUP_LIST_TYPE =
+            TYPES.constructCollectionType(List.class, Matchup.class);
 
     private final Requester requester;
 
@@ -67,5 +71,19 @@ public final class LeaguesApi {
         Args.requireId("leagueId", leagueId);
         return requester.get(List.of("league", leagueId, "rosters"), Map.of(), ROSTER_LIST_TYPE,
                 EmptyKind.LIST, null);
+    }
+
+    /**
+     * Returns every team's matchup row for a week ({@code /league/{leagueId}/matchups/{week}}), or
+     * an empty list. The week is not checked against the schedule; out-of-range weeks give an
+     * empty list. Use {@link dev.brickfolio.jsleeper.util.Matchups#pair} to group the rows.
+     *
+     * @throws IllegalArgumentException if {@code leagueId} is blank or {@code week} is below 1
+     */
+    public List<Matchup> matchups(String leagueId, int week) {
+        Args.requireId("leagueId", leagueId);
+        Args.requirePositive("week", week);
+        return requester.get(List.of("league", leagueId, "matchups", Integer.toString(week)),
+                Map.of(), MATCHUP_LIST_TYPE, EmptyKind.LIST, null);
     }
 }
