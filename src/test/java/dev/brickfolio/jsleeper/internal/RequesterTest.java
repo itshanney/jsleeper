@@ -11,6 +11,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
+import dev.brickfolio.jsleeper.RetryPolicy;
 import dev.brickfolio.jsleeper.error.SleeperApiException;
 import dev.brickfolio.jsleeper.error.SleeperBadRequestException;
 import dev.brickfolio.jsleeper.error.SleeperDeserializationException;
@@ -44,7 +45,8 @@ class RequesterTest {
     private final HttpClient http = HttpClient.newHttpClient();
 
     private Requester requester(URI base, Duration timeout) {
-        return new Requester(http, base, mapper, timeout, USER_AGENT);
+        return new Requester(http, base, mapper, timeout, USER_AGENT, RetryPolicy.none(),
+                java.time.Clock.systemUTC(), Sleeper.real(), new java.util.Random(1));
     }
 
     private Requester requester() {

@@ -3,11 +3,14 @@ package dev.brickfolio.jsleeper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.brickfolio.jsleeper.internal.JsonCodec;
 import dev.brickfolio.jsleeper.internal.Requester;
+import dev.brickfolio.jsleeper.internal.Sleeper;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.Objects;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.random.RandomGenerator;
 
 /** Configures a {@link SleeperClient}. Not thread-safe; use from one thread, then call {@link #build()}. */
 public final class SleeperClientBuilder {
@@ -24,6 +27,7 @@ public final class SleeperClientBuilder {
     private String userAgent = "jsleeper/" + version() + " (+" + REPO_URL + ")";
     private ObjectMapper objectMapper;
     private Clock clock = Clock.systemUTC();
+    private RetryPolicy retryPolicy = RetryPolicy.defaults();
 
     SleeperClientBuilder() {}
 
@@ -66,6 +70,12 @@ public final class SleeperClientBuilder {
         return this;
     }
 
+    /** Sets the retry policy. Default {@link RetryPolicy#defaults()}; use {@link RetryPolicy#none()} to disable. */
+    public SleeperClientBuilder retryPolicy(RetryPolicy retryPolicy) {
+        this.retryPolicy = Objects.requireNonNull(retryPolicy, "retryPolicy");
+        return this;
+    }
+
     /** Sets the clock used by time-dependent components. Default UTC system clock. */
     public SleeperClientBuilder clock(Clock clock) {
         this.clock = Objects.requireNonNull(clock, "clock");
@@ -87,8 +97,14 @@ public final class SleeperClientBuilder {
         HttpClient client = httpClient != null ? httpClient : defaultHttpClient();
         ObjectMapper mapper = objectMapper != null
                 ? JsonCodec.copyOf(objectMapper) : JsonCodec.create();
-        Requester requester = new Requester(client, base, mapper, requestTimeout, userAgent);
+        Requester requester = new Requester(client, base, mapper, requestTimeout, userAgent,
+                retryPolicy, clock, Sleeper.real(), threadSafeRandom());
         return new SleeperClient(requester, clock);
+    }
+
+    /** ThreadLocalRandom must be fetched per thread, so look it up on every call. */
+    private static RandomGenerator threadSafeRandom() {
+        return () -> ThreadLocalRandom.current().nextLong();
     }
 
     private static URI parseBaseUri(String value) {

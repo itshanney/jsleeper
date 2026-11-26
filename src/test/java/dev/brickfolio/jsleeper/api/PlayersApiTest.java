@@ -175,7 +175,8 @@ class PlayersApiTest {
         wm.stubFor(get(urlEqualTo("/v1/players/nfl?position=QB")).willReturn(aResponse().withStatus(200)
                 .withHeader("Content-Type", "application/json").withBody("{}").withFixedDelay(600)));
         SleeperClient shortTimeout = SleeperClient.builder().baseUri(wm.baseUrl() + "/v1")
-                .requestTimeout(Duration.ofMillis(200)).build();
+                .requestTimeout(Duration.ofMillis(200))
+                .retryPolicy(dev.brickfolio.jsleeper.RetryPolicy.none()).build();
 
         assertThat(shortTimeout.players().all(Sport.NFL)).isEmpty();
         assertThatThrownBy(() -> shortTimeout.players().all(Sport.NFL, PlayerQuery.builder().position("QB").build()))

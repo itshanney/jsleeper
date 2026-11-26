@@ -4,8 +4,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.brickfolio.jsleeper.RetryPolicy;
 import dev.brickfolio.jsleeper.error.SleeperApiException;
 import dev.brickfolio.jsleeper.error.SleeperDeserializationException;
+import dev.brickfolio.jsleeper.error.SleeperException;
 import dev.brickfolio.jsleeper.error.SleeperTransportException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -14,16 +16,23 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.random.RandomGenerator;
 
 /**
  * Runs one GET end to end: builds the URI, sends it, classifies the response by the empty-result
- * rules, and deserialises the body. No retries, rate limiting or listeners yet.
+ * rules, and deserialises the body. Retryable failures are retried per the {@link RetryPolicy}.
+ * No rate limiting or listeners yet.
  *
  * <p>Response bodies are read fully into memory before parsing. The largest response (players,
  * about 5 MB) fits comfortably, and it makes error snippets trivial.
@@ -44,19 +53,31 @@ public final class Requester {
     private final ObjectMapper mapper;
     private final Duration requestTimeout;
     private final String userAgent;
+    private final RetryPolicy retryPolicy;
+    private final Clock clock;
+    private final Sleeper sleeper;
+    private final RandomGenerator random;
 
     /**
      * @param baseUri API root such as {@code https://api.sleeper.app/v1}
      * @param requestTimeout default per-request timeout; must be positive
+     * @param clock resolves HTTP-date {@code Retry-After} values
+     * @param sleeper waits between attempts
+     * @param random supplies backoff jitter
      */
     public Requester(HttpClient httpClient, URI baseUri, ObjectMapper mapper,
-            Duration requestTimeout, String userAgent) {
+            Duration requestTimeout, String userAgent, RetryPolicy retryPolicy, Clock clock,
+            Sleeper sleeper, RandomGenerator random) {
         this.httpClient = Objects.requireNonNull(httpClient, "httpClient");
         String base = Objects.requireNonNull(baseUri, "baseUri").toString();
         this.baseUri = base.endsWith("/") ? base.substring(0, base.length() - 1) : base;
         this.mapper = Objects.requireNonNull(mapper, "mapper");
         this.requestTimeout = requirePositive(requestTimeout, "requestTimeout");
         this.userAgent = Objects.requireNonNull(userAgent, "userAgent");
+        this.retryPolicy = Objects.requireNonNull(retryPolicy, "retryPolicy");
+        this.clock = Objects.requireNonNull(clock, "clock");
+        this.sleeper = Objects.requireNonNull(sleeper, "sleeper");
+        this.random = Objects.requireNonNull(random, "random");
     }
 
     /**
@@ -76,20 +97,97 @@ public final class Requester {
         HttpRequest request = buildRequest(path, query,
                 timeoutOverride == null ? requestTimeout : requirePositive(timeoutOverride, "timeoutOverride"));
 
+        for (int attempt = 1; ; attempt++) {
+            RetryHint hint = new RetryHint();
+            try {
+                return (R) attemptOnce(request, path, type, kind, hint);
+            } catch (SleeperException failure) {
+                if (attempt >= retryPolicy.maxAttempts() || !isRetryable(failure)) {
+                    throw failure;
+                }
+                Duration delay = delayBeforeRetry(attempt, hint);
+                if (delay == null) {
+                    // Retry-After asks for longer than we are willing to block.
+                    throw failure;
+                }
+                pause(delay, path);
+            }
+        }
+    }
+
+    /** Carries the response's {@code Retry-After} header out of a failed attempt. */
+    private static final class RetryHint {
+        private String retryAfter;
+    }
+
+    private Object attemptOnce(HttpRequest request, String path, JavaType type, EmptyKind kind,
+            RetryHint hint) {
         HttpResponse<InputStream> response = send(request, path);
         int status = response.statusCode();
         try (InputStream body = response.body()) {
             if (status >= STATUS_OK_MIN && status <= STATUS_OK_MAX) {
                 byte[] bytes = readAll(body, path);
-                return (R) parseSuccess(bytes, path, type, kind, status);
+                return parseSuccess(bytes, path, type, kind, status);
             }
             byte[] bytes = readLimited(body, path);
             if (status == STATUS_NOT_FOUND && isJson(response)) {
-                return (R) emptyResult(kind, path, status, bytes);
+                return emptyResult(kind, path, status, bytes);
             }
+            hint.retryAfter = response.headers().firstValue("Retry-After").orElse(null);
             // A non-JSON 404 is an unknown route (a library bug or API change), never "no data".
             throw SleeperApiException.forStatus(METHOD, path, status, snippet(bytes));
         } catch (IOException e) {
+            throw new SleeperTransportException(METHOD, path, e);
+        }
+    }
+
+    private boolean isRetryable(SleeperException failure) {
+        if (failure instanceof SleeperApiException api) {
+            return retryPolicy.retryOnStatuses().contains(api.status());
+        }
+        if (failure instanceof SleeperTransportException transport) {
+            // An interrupted thread must stop, not retry.
+            return retryPolicy.retryOnTransportErrors()
+                    && !(transport.getCause() instanceof InterruptedException);
+        }
+        return false;
+    }
+
+    /** Returns the wait before the next attempt, or null if {@code Retry-After} is too long. */
+    private Duration delayBeforeRetry(int failedAttempt, RetryHint hint) {
+        Duration retryAfter = parseRetryAfter(hint.retryAfter);
+        if (retryAfter != null) {
+            return retryAfter.compareTo(RetryPolicy.MAX_RETRY_AFTER) > 0 ? null : retryAfter;
+        }
+        long ceilingMillis = retryPolicy.backoffCeiling(failedAttempt).toMillis();
+        return Duration.ofMillis(random.nextLong(ceilingMillis + 1));
+    }
+
+    /** Parses integer seconds or an HTTP date; returns null if absent or unparseable. */
+    private Duration parseRetryAfter(String header) {
+        if (header == null || header.isBlank()) {
+            return null;
+        }
+        String value = header.trim();
+        try {
+            return Duration.ofSeconds(Math.max(Long.parseLong(value), 0));
+        } catch (NumberFormatException notSeconds) {
+            // fall through to the HTTP-date form
+        }
+        try {
+            Instant when = ZonedDateTime.parse(value, DateTimeFormatter.RFC_1123_DATE_TIME).toInstant();
+            Duration wait = Duration.between(clock.instant(), when);
+            return wait.isNegative() ? Duration.ZERO : wait;
+        } catch (DateTimeParseException notDate) {
+            return null;
+        }
+    }
+
+    private void pause(Duration delay, String path) {
+        try {
+            sleeper.sleep(delay);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             throw new SleeperTransportException(METHOD, path, e);
         }
     }
