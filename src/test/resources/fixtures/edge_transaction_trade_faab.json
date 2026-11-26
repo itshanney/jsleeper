@@ -1,0 +1,40 @@
+[
+  {
+    "type": "trade",
+    "transaction_id": "1405900000000000001",
+    "status_updated": 1789600000000,
+    "status": "complete",
+    "settings": null,
+    "roster_ids": [4, 9],
+    "metadata": null,
+    "leg": 1,
+    "drops": null,
+    "draft_picks": [
+      {
+        "season": "2027",
+        "round": 1,
+        "roster_id": 4,
+        "previous_owner_id": 4,
+        "owner_id": 9
+      },
+      {
+        "season": "2027",
+        "round": 3,
+        "roster_id": 9,
+        "previous_owner_id": 9,
+        "owner_id": 4
+      }
+    ],
+    "creator": "470794171712532480",
+    "created": 1789599000000,
+    "consenter_ids": [4, 9],
+    "adds": null,
+    "waiver_budget": [
+      {
+        "sender": 4,
+        "receiver": 9,
+        "amount": 55
+      }
+    ]
+  }
+]

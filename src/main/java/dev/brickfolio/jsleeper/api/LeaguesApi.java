@@ -8,6 +8,8 @@ import dev.brickfolio.jsleeper.model.League;
 import dev.brickfolio.jsleeper.model.LeagueUser;
 import dev.brickfolio.jsleeper.model.Matchup;
 import dev.brickfolio.jsleeper.model.Roster;
+import dev.brickfolio.jsleeper.model.TradedPick;
+import dev.brickfolio.jsleeper.model.Transaction;
 import dev.brickfolio.jsleeper.model.bracket.BracketMatch;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +37,11 @@ public final class LeaguesApi {
 
     private static final JavaType BRACKET_LIST_TYPE =
             TYPES.constructCollectionType(List.class, BracketMatch.class);
+
+    private static final JavaType TRANSACTION_LIST_TYPE =
+            TYPES.constructCollectionType(List.class, Transaction.class);
+    private static final JavaType TRADED_PICK_LIST_TYPE =
+            TYPES.constructCollectionType(List.class, TradedPick.class);
 
     private final Requester requester;
 
@@ -115,5 +122,31 @@ public final class LeaguesApi {
         Args.requireId("leagueId", leagueId);
         return requester.get(List.of("league", leagueId, segment), Map.of(), BRACKET_LIST_TYPE,
                 EmptyKind.LIST, null);
+    }
+
+    /**
+     * Returns the trades, free-agent moves and waiver claims of a week
+     * ({@code /league/{leagueId}/transactions/{week}}), or an empty list. The Sleeper docs call
+     * the week parameter {@code round}.
+     *
+     * @throws IllegalArgumentException if {@code leagueId} is blank or {@code week} is below 1
+     */
+    public List<Transaction> transactions(String leagueId, int week) {
+        Args.requireId("leagueId", leagueId);
+        Args.requirePositive("week", week);
+        return requester.get(List.of("league", leagueId, "transactions", Integer.toString(week)),
+                Map.of(), TRANSACTION_LIST_TYPE, EmptyKind.LIST, null);
+    }
+
+    /**
+     * Returns all traded picks in a league, including future picks
+     * ({@code /league/{leagueId}/traded_picks}), or an empty list.
+     *
+     * @throws IllegalArgumentException if {@code leagueId} is null or blank
+     */
+    public List<TradedPick> tradedPicks(String leagueId) {
+        Args.requireId("leagueId", leagueId);
+        return requester.get(List.of("league", leagueId, "traded_picks"), Map.of(),
+                TRADED_PICK_LIST_TYPE, EmptyKind.LIST, null);
     }
 }
