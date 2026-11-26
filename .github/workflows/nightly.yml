@@ -1,0 +1,86 @@
+name: nightly
+
+# Live smoke tests against the real Sleeper API and a check of Sleeper's docs for drift.
+# Needs the repository secret SLEEPER_LEAGUE_ID (a public league ID). Without it the
+# league tests are skipped, and the D7 not-found probe still runs.
+
+on:
+  schedule:
+    - cron: '0 9 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Live smoke tests
+        id: live
+        continue-on-error: true
+        env:
+          SLEEPER_LEAGUE_ID: ${{ secrets.SLEEPER_LEAGUE_ID }}
+        run: ./gradlew liveTest
+
+      - name: Check Sleeper docs for drift
+        id: docs
+        continue-on-error: true
+        run: |
+          set +e
+          scripts/check-sleeper-docs.sh
+          code=$?
+          set -e
+          echo "exit code: $code"
+          # 0 no change, 10 cosmetic change (not a failure), 20 content change, 1 error.
+          if [ "$code" -eq 10 ]; then
+            echo "::warning::Sleeper docs changed cosmetically (script exit 10); review and re-baseline if desired."
+          fi
+          if [ "$code" -ne 0 ] && [ "$code" -ne 10 ]; then
+            exit "$code"
+          fi
+
+      - name: Keep the extracted docs text for later diffs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sleeper-docs-text
+          path: build/sleeper-docs/page.txt
+          if-no-files-found: ignore
+
+      - name: Open or update the nightly-failure issue
+        if: steps.live.outcome == 'failure' || steps.docs.outcome == 'failure'
+        env:
+          LIVE_OUTCOME: ${{ steps.live.outcome }}
+          DOCS_OUTCOME: ${{ steps.docs.outcome }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          label="nightly-failure"
+          failed=""
+          [ "$LIVE_OUTCOME" = "failure" ] && failed="${failed}- Live smoke tests (\`./gradlew liveTest\`): schema or not-found behaviour may have drifted."$'\n'
+          [ "$DOCS_OUTCOME" = "failure" ] && failed="${failed}- Sleeper docs check (\`scripts/check-sleeper-docs.sh\`): the documentation content changed (exit 20) or the check itself failed."$'\n'
+          body="The nightly run failed.
+
+          ${failed}
+          Run: ${RUN_URL}"
+          gh label create "$label" --color B60205 --description "Nightly live checks failed" 2>/dev/null || true
+          existing="$(gh issue list --label "$label" --state open --limit 1 --json number --jq '.[0].number // empty')"
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "$body"
+          else
+            gh issue create --title "Nightly checks failed" --label "$label" --body "$body"
+          fi
+
+      - name: Fail the job if a check failed
+        if: steps.live.outcome == 'failure' || steps.docs.outcome == 'failure'
+        run: exit 1

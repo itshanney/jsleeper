@@ -39,5 +39,22 @@ tasks.jar {
 }
 
 tasks.test {
-    useJUnitPlatform()
+    // Live tests call the real Sleeper API; they run only through liveTest.
+    useJUnitPlatform {
+        excludeTags("live")
+    }
+}
+
+// Read-only calls against the real API (about 40 in total). Not part of check or build.
+// SLEEPER_LEAGUE_ID is inherited from the environment; without it (or .env) the league tests skip.
+val liveTest by tasks.registering(Test::class) {
+    description = "Runs the @Tag(\"live\") smoke tests against the real Sleeper API."
+    group = "verification"
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    useJUnitPlatform {
+        includeTags("live")
+    }
+    System.getenv("SLEEPER_LEAGUE_ID")?.let { environment("SLEEPER_LEAGUE_ID", it) }
+    outputs.upToDateWhen { false }
 }
