@@ -137,7 +137,7 @@ class SleeperClientTest {
         builder().build().state().get(Sport.NFL);
 
         wm.verify(getRequestedFor(urlEqualTo("/v1/state/nfl"))
-                .withHeader("User-Agent", com.github.tomakehurst.wiremock.client.WireMock.matching("jsleeper/.+")));
+                .withHeader("User-Agent", com.github.tomakehurst.wiremock.client.WireMock.matching("jsleeper/\\S+ \\(\\+https://github\\.com/itshanney/jsleeper\\)")));
     }
 
     @Test

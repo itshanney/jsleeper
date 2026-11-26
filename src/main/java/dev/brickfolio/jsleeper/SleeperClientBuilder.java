@@ -16,11 +16,12 @@ public final class SleeperClientBuilder {
     private static final Duration DEFAULT_CONNECT_TIMEOUT = Duration.ofSeconds(5);
     private static final Duration DEFAULT_REQUEST_TIMEOUT = Duration.ofSeconds(10);
     private static final String UNKNOWN_VERSION = "dev";
+    private static final String REPO_URL = "https://github.com/itshanney/jsleeper";
 
     private String baseUri = DEFAULT_BASE_URI;
     private HttpClient httpClient;
     private Duration requestTimeout = DEFAULT_REQUEST_TIMEOUT;
-    private String userAgent = "jsleeper/" + version();
+    private String userAgent = "jsleeper/" + version() + " (+" + REPO_URL + ")";
     private ObjectMapper objectMapper;
     private Clock clock = Clock.systemUTC();
 
@@ -50,7 +51,7 @@ public final class SleeperClientBuilder {
         return this;
     }
 
-    /** Sets the {@code User-Agent} header. Default {@code jsleeper/<version>}; must not be blank. */
+    /** Sets the {@code User-Agent} header. Default {@code jsleeper/<version> (+<repo url>)}; must not be blank. */
     public SleeperClientBuilder userAgent(String userAgent) {
         this.userAgent = Objects.requireNonNull(userAgent, "userAgent");
         return this;
