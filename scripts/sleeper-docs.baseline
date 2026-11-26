@@ -1,0 +1,7 @@
+# Fingerprint of https://docs.sleeper.com/ that the current spec was written against.
+# See Appendix A.0 / A.11 of specs/2026-11-26-sleeper-java-client.md.
+# Update with: scripts/check-sleeper-docs.sh --update-baseline   (after reviewing the change)
+CHECKED_AT=2026-11-26T22:25:11Z
+LAST_MODIFIED=Wed, 21 Oct 2026 20:47:40 GMT
+HTML_SHA256=bc5e8afe21f49fecf29280518612eaf8f39b6d00f19340dc2b5e7dfc2be8feef
+TEXT_SHA256=4bf713cd298ea413028b577a8fc4a4fbb1fda6570589707ded5250dc18ee97a8
