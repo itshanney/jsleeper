@@ -53,25 +53,33 @@ tasks.jar {
     }
 }
 
-tasks.test {
-    // Live tests call the real Sleeper API; they run only through liveTest.
-    useJUnitPlatform {
-        excludeTags("live")
-    }
-}
+testing {
+    suites {
+        // Unit tests (src/test): offline only. Every HTTP call goes to a local WireMock server.
+        named<JvmTestSuite>("test") {
+            useJUnitJupiter(libs.versions.junit)
+        }
 
-// Read-only calls against the real API (about 40 in total). Not part of check or build.
-// SLEEPER_LEAGUE_ID is inherited from the environment; without it (or .env) the league tests skip.
-val liveTest by tasks.registering(Test::class) {
-    description = "Runs the @Tag(\"live\") smoke tests against the real Sleeper API."
-    group = "verification"
-    testClassesDirs = sourceSets.test.get().output.classesDirs
-    classpath = sourceSets.test.get().runtimeClasspath
-    useJUnitPlatform {
-        includeTags("live")
+        // Integration tests (src/integrationTest): read-only calls to the real Sleeper API,
+        // about 40 per run. Not part of check or build; run with ./gradlew integrationTest.
+        // SLEEPER_LEAGUE_ID is inherited from the environment; without it (or .env) the
+        // league tests skip and only the not-found probe runs.
+        register<JvmTestSuite>("integrationTest") {
+            useJUnitJupiter(libs.versions.junit)
+            dependencies {
+                implementation(project())
+                implementation(libs.assertj.core)
+            }
+            targets.all {
+                testTask.configure {
+                    description = "Runs the integration tests against the real Sleeper API."
+                    System.getenv("SLEEPER_LEAGUE_ID")?.let { environment("SLEEPER_LEAGUE_ID", it) }
+                    outputs.upToDateWhen { false }
+                    shouldRunAfter(tasks.test)
+                }
+            }
+        }
     }
-    System.getenv("SLEEPER_LEAGUE_ID")?.let { environment("SLEEPER_LEAGUE_ID", it) }
-    outputs.upToDateWhen { false }
 }
 
 publishing {

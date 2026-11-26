@@ -32,7 +32,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
@@ -41,7 +40,6 @@ import org.junit.jupiter.api.TestInstance;
  * Assertions are about shape and cross-call consistency, not exact values. Skipped when no league ID
  * is configured. IDs are compared as booleans so a failure never prints the league ID.
  */
-@Tag("live")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class LiveSmokeTest {
 

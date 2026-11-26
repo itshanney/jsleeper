@@ -5,7 +5,7 @@
 //          javadoc jar (Javadoc runs with -Xdoclint:all -Werror). No tests run.
 //   Test:  run the unit test suite and publish JUnit results to Jenkins.
 //
-// Live tests (./gradlew liveTest) hit the real Sleeper API and are deliberately
+// Integration tests (src/integrationTest, ./gradlew integrationTest) hit the real Sleeper API and are deliberately
 // not part of this pipeline; they run in the nightly GitHub Actions workflow.
 //
 // Requirements on the Jenkins agent:

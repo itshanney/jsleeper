@@ -151,13 +151,14 @@ Sleeper cannot tell an unknown league ID from a league with no rows in many case
 ## Development
 
 ```
-./gradlew build          # compile (-Xlint:all -Werror), unit tests, Javadoc (doclint), jars
-./gradlew liveTest       # read-only calls to the real Sleeper API; not part of build
+./gradlew build             # compile (-Xlint:all -Werror), unit tests, Javadoc (doclint), jars
+./gradlew integrationTest   # read-only calls to the real Sleeper API; not part of build
 scripts/record-fixtures.sh       # re-record anonymised test fixtures
 scripts/check-sleeper-docs.sh    # detect changes in Sleeper's published docs
 ```
 
-- `liveTest` needs a public league ID in the `SLEEPER_LEAGUE_ID` environment variable, or in a git-ignored `.env` file as `sleeper.league_id=<id>`. Without one, the league tests are skipped; the not-found probe still runs. A nightly GitHub Actions workflow runs the live tests and the docs check, and opens an issue on failure (it needs a `SLEEPER_LEAGUE_ID` repository secret).
+- Tests are split into two source sets. `src/test` holds the unit tests: they are offline, and every HTTP call goes to a local WireMock server. `src/integrationTest` holds the integration tests, which call the real Sleeper API.
+- `integrationTest` needs a public league ID in the `SLEEPER_LEAGUE_ID` environment variable, or in a git-ignored `.env` file as `sleeper.league_id=<id>`. Without one, the league tests are skipped; the not-found probe still runs. A nightly GitHub Actions workflow runs the live tests and the docs check, and opens an issue on failure (it needs a `SLEEPER_LEAGUE_ID` repository secret).
 - `scripts/record-fixtures.sh` takes the league ID from `--league-id`, the same environment variable, or `.env`. It anonymises user data before writing fixtures. See `src/test/resources/fixtures/README.md`.
 - A dry-run publish writes the jar, sources, Javadoc and POM to `build/staging-repo`: `./gradlew publishMavenJavaPublicationToStagingRepository`. Signing runs only when `-PsigningKey` and `-PsigningPassword` are supplied.
 

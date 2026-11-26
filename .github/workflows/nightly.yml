@@ -26,12 +26,12 @@ jobs:
           java-version: '25'
       - uses: gradle/actions/setup-gradle@v4
 
-      - name: Live smoke tests
+      - name: Integration tests (real Sleeper API)
         id: live
         continue-on-error: true
         env:
           SLEEPER_LEAGUE_ID: ${{ secrets.SLEEPER_LEAGUE_ID }}
-        run: ./gradlew liveTest
+        run: ./gradlew integrationTest
 
       - name: Check Sleeper docs for drift
         id: docs
@@ -67,7 +67,7 @@ jobs:
         run: |
           label="nightly-failure"
           failed=""
-          [ "$LIVE_OUTCOME" = "failure" ] && failed="${failed}- Live smoke tests (\`./gradlew liveTest\`): schema or not-found behaviour may have drifted."$'\n'
+          [ "$LIVE_OUTCOME" = "failure" ] && failed="${failed}- Integration tests (\`./gradlew integrationTest\`): schema or not-found behaviour may have drifted."$'\n'
           [ "$DOCS_OUTCOME" = "failure" ] && failed="${failed}- Sleeper docs check (\`scripts/check-sleeper-docs.sh\`): the documentation content changed (exit 20) or the check itself failed."$'\n'
           body="The nightly run failed.
 

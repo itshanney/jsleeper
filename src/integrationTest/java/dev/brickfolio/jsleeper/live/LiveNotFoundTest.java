@@ -9,7 +9,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.stream.Stream;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -19,7 +18,6 @@ import org.junit.jupiter.params.provider.MethodSource;
  * the library's empty-result rules depend on. If Sleeper changes any row, this fails, so results
  * never silently change. Needs no league ID.
  */
-@Tag("live")
 class LiveNotFoundTest {
 
     private static final String BASE = "https://api.sleeper.app";

@@ -592,7 +592,7 @@ This is a library, so "operations" means its behaviour inside consumer processes
 - **Unit tests:** deserialisation of every model against the fixtures; unknown enum value → `UNKNOWN` with the raw string kept; an extra unknown field is ignored.
 - **WireMock tests:** retry and backoff (429 then 200; three 503s → exception), `Retry-After`, 404+`null` → empty, 404 with an empty body → empty, **404 with an error object or HTML → `SleeperApiException`**, 200+`null` → empty, 200+`[]` → empty list, timeout → `SleeperTransportException`, and path encoding of usernames with spaces or unicode.
 - **Rate limiter and directory:** deterministic tests with a fake `Clock` and an injectable sleeper.
-- **Live smoke tests:** tagged `@Tag("live")` and excluded by default. Run nightly in CI against a known public league ID (configured as a CI variable), with about 20 calls per run. They catch schema drift early. They also re-run the D7 probe (nonexistent IDs) and assert the documented status/content-type for each endpoint, so a Sleeper change to its not-found behaviour fails the build instead of silently changing results.
+- **Integration (live) tests:** a separate `integrationTest` source set (`src/integrationTest`) and Gradle task, not part of `build`. Unit tests in `src/test` never touch the network. Run nightly in CI against a known public league ID (configured as a CI variable), with about 20 calls per run. They catch schema drift early. They also re-run the D7 probe (nonexistent IDs) and assert the documented status/content-type for each endpoint, so a Sleeper change to its not-found behaviour fails the build instead of silently changing results.
 
 **CI and release**
 - GitHub Actions: build + unit + WireMock tests on JDK 25 (Temurin); a nightly live-smoke job that opens an issue on failure.
@@ -768,8 +768,8 @@ Increments run in order unless the "Depends on" column says otherwise. Increment
 - **Done when:** they compile and pass. Any API change that breaks an example must update this spec section in the same PR.
 
 **22. Live smoke tests + nightly CI** (M)
-- JUnit `@Tag("live")` tests are excluded from `build` and run with `./gradlew liveTest`. They call each endpoint once against the configured public IDs (about 20 calls) and re-assert the D7 status and content-type table.
-- `.github/workflows/nightly.yml` runs `liveTest` and `scripts/check-sleeper-docs.sh`, and opens an issue on test failure or on docs-check exit code 20.
+- Integration tests live in their own `src/integrationTest` source set (a Gradle `jvm-test-suite`), are not part of `build`, and run with `./gradlew integrationTest`. They call each endpoint once against the configured public IDs (about 20 calls) and re-assert the D7 status and content-type table.
+- `.github/workflows/nightly.yml` runs `integrationTest` and `scripts/check-sleeper-docs.sh`, and opens an issue on test failure or on docs-check exit code 20.
 - **Done when:** a manual run of the nightly workflow is green, and a deliberately wrong baseline hash opens an issue.
 
 **23. README, Javadoc and publishing** (M)
