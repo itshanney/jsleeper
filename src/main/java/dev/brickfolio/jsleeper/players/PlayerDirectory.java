@@ -1,13 +1,26 @@
 package dev.brickfolio.jsleeper.players;
 
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import dev.brickfolio.jsleeper.SleeperClient;
+import dev.brickfolio.jsleeper.internal.JsonCodec;
 import dev.brickfolio.jsleeper.model.Player;
 import dev.brickfolio.jsleeper.model.Sport;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.UncheckedIOException;
 import java.lang.System.Logger.Level;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -35,6 +48,10 @@ public final class PlayerDirectory {
 
     private static final System.Logger LOG = System.getLogger("dev.brickfolio.jsleeper");
     private static final Duration MAX_FAILURE_BACKOFF = Duration.ofHours(1);
+    private static final int SNAPSHOT_FORMAT = 1;
+    private static final String EXTERNAL_IDS_FIELD = "external_ids";
+    // Own mapper: snapshots must not depend on a caller-supplied mapper's settings.
+    private static final ObjectMapper SNAPSHOT_MAPPER = JsonCodec.create();
 
     private final SleeperClient client;
     private final Sport sport;
@@ -94,6 +111,116 @@ public final class PlayerDirectory {
         } finally {
             refreshLock.unlock();
         }
+    }
+
+    /**
+     * Writes the loaded players as JSON: {@code {"format":1,"sport":"nfl","loadedAt":"...","players":{...}}}.
+     * The stream is flushed but not closed. Pair with {@link #loadSnapshot} to survive restarts
+     * without calling Sleeper again.
+     *
+     * @throws IllegalStateException if nothing has been loaded yet
+     * @throws UncheckedIOException if writing fails
+     */
+    public void writeSnapshot(OutputStream out) {
+        Objects.requireNonNull(out, "out");
+        Snapshot s = snapshot;
+        if (s == null) {
+            throw new IllegalStateException("no player data loaded yet; call get(), all() or refresh() first");
+        }
+        try (JsonGenerator gen = SNAPSHOT_MAPPER.getFactory().createGenerator(out)) {
+            gen.disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET);  // the caller owns the stream
+            gen.writeStartObject();
+            gen.writeNumberField("format", SNAPSHOT_FORMAT);
+            gen.writeStringField("sport", sport.wireValue());
+            gen.writeStringField("loadedAt", s.loadedAt().toString());
+            gen.writeObjectFieldStart("players");
+            for (Map.Entry<String, Player> entry : s.players().entrySet()) {
+                gen.writeFieldName(entry.getKey());
+                SNAPSHOT_MAPPER.writeTree(gen, toWireShape(entry.getValue()));
+            }
+            gen.writeEndObject();
+            gen.writeEndObject();
+            gen.flush();
+        } catch (IOException e) {
+            throw new UncheckedIOException("writing the player snapshot failed", e);
+        }
+    }
+
+    /**
+     * Replaces the loaded data with a snapshot from {@link #writeSnapshot}, keeping its stored
+     * {@code loadedAt}. A snapshot younger than the TTL makes later lookups free of HTTP calls; an
+     * older one is refreshed by the next lookup. The stream is not closed. If the snapshot is
+     * rejected, the current data is left untouched.
+     *
+     * @throws IllegalArgumentException if the content is malformed, has an unsupported format, or
+     *     was written for a different sport
+     * @throws UncheckedIOException if reading the stream fails
+     */
+    public void loadSnapshot(InputStream in) {
+        Objects.requireNonNull(in, "in");
+        JsonNode root;
+        try (JsonParser parser = SNAPSHOT_MAPPER.getFactory().createParser(in)) {
+            parser.disable(JsonParser.Feature.AUTO_CLOSE_SOURCE);  // the caller owns the stream
+            root = SNAPSHOT_MAPPER.readTree(parser);
+        } catch (JsonProcessingException e) {
+            throw new IllegalArgumentException("snapshot is not valid JSON: " + e.getOriginalMessage(), e);
+        } catch (IOException e) {
+            throw new UncheckedIOException("reading the player snapshot failed", e);
+        }
+        Snapshot loaded = parseSnapshot(root);
+        refreshLock.lock();
+        try {
+            snapshot = loaded;
+        } finally {
+            refreshLock.unlock();
+        }
+    }
+
+    private Snapshot parseSnapshot(JsonNode root) {
+        if (root == null || !root.isObject()) {
+            throw new IllegalArgumentException("snapshot must be a JSON object");
+        }
+        if (root.path("format").asInt(-1) != SNAPSHOT_FORMAT) {
+            throw new IllegalArgumentException("unsupported snapshot format " + root.path("format")
+                    + "; expected " + SNAPSHOT_FORMAT);
+        }
+        String snapshotSport = root.path("sport").asText(null);
+        if (!sport.wireValue().equals(snapshotSport)) {
+            throw new IllegalArgumentException("snapshot is for sport " + snapshotSport
+                    + " but this directory is for " + sport.wireValue());
+        }
+        Instant loadedAt;
+        try {
+            loadedAt = Instant.parse(root.path("loadedAt").asText(""));
+        } catch (DateTimeParseException e) {
+            throw new IllegalArgumentException("snapshot loadedAt is not an ISO-8601 instant", e);
+        }
+        JsonNode playersNode = root.path("players");
+        if (!playersNode.isObject()) {
+            throw new IllegalArgumentException("snapshot players must be a JSON object");
+        }
+        Map<String, Player> players = new LinkedHashMap<>();
+        for (Map.Entry<String, JsonNode> entry : playersNode.properties()) {
+            try {
+                players.put(entry.getKey(), SNAPSHOT_MAPPER.treeToValue(entry.getValue(), Player.class));
+            } catch (JsonProcessingException e) {
+                throw new IllegalArgumentException("snapshot player " + entry.getKey() + " is invalid", e);
+            }
+        }
+        return new Snapshot(Collections.unmodifiableMap(players), loadedAt, loadedAt.plus(ttl));
+    }
+
+    /**
+     * Serialises a player the way Sleeper sends it: the nested {@code external_ids} are lifted back
+     * to top-level fields, which is the shape {@code Player}'s JSON creator reads.
+     */
+    private static JsonNode toWireShape(Player player) {
+        ObjectNode node = SNAPSHOT_MAPPER.valueToTree(player);
+        JsonNode ids = node.remove(EXTERNAL_IDS_FIELD);
+        if (ids instanceof ObjectNode idFields) {
+            node.setAll(idFields);
+        }
+        return node;
     }
 
     /** Returns when the current data was loaded, or empty if nothing has been loaded yet. */
