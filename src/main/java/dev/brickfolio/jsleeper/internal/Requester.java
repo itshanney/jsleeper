@@ -31,8 +31,8 @@ import java.util.random.RandomGenerator;
 
 /**
  * Runs one GET end to end: builds the URI, sends it, classifies the response by the empty-result
- * rules, and deserialises the body. Retryable failures are retried per the {@link RetryPolicy}.
- * No rate limiting or listeners yet.
+ * rules, and deserialises the body. Retryable failures are retried per the {@link RetryPolicy}, and every
+ * attempt first takes a token from the {@link RateLimiter}. No listeners yet.
  *
  * <p>Response bodies are read fully into memory before parsing. The largest response (players,
  * about 5 MB) fits comfortably, and it makes error snippets trivial.
@@ -56,6 +56,7 @@ public final class Requester {
     private final RetryPolicy retryPolicy;
     private final Clock clock;
     private final Sleeper sleeper;
+    private final RateLimiter rateLimiter;
     private final RandomGenerator random;
 
     /**
@@ -64,10 +65,11 @@ public final class Requester {
      * @param clock resolves HTTP-date {@code Retry-After} values
      * @param sleeper waits between attempts
      * @param random supplies backoff jitter
+     * @param rateLimiter takes a token before every attempt, retries included
      */
     public Requester(HttpClient httpClient, URI baseUri, ObjectMapper mapper,
             Duration requestTimeout, String userAgent, RetryPolicy retryPolicy, Clock clock,
-            Sleeper sleeper, RandomGenerator random) {
+            Sleeper sleeper, RandomGenerator random, RateLimiter rateLimiter) {
         this.httpClient = Objects.requireNonNull(httpClient, "httpClient");
         String base = Objects.requireNonNull(baseUri, "baseUri").toString();
         this.baseUri = base.endsWith("/") ? base.substring(0, base.length() - 1) : base;
@@ -78,6 +80,7 @@ public final class Requester {
         this.clock = Objects.requireNonNull(clock, "clock");
         this.sleeper = Objects.requireNonNull(sleeper, "sleeper");
         this.random = Objects.requireNonNull(random, "random");
+        this.rateLimiter = Objects.requireNonNull(rateLimiter, "rateLimiter");
     }
 
     /**
@@ -98,6 +101,8 @@ public final class Requester {
                 timeoutOverride == null ? requestTimeout : requirePositive(timeoutOverride, "timeoutOverride"));
 
         for (int attempt = 1; ; attempt++) {
+            // Outside the try: a client-side rate-limit failure must not itself be retried.
+            rateLimiter.acquire(METHOD, path);
             RetryHint hint = new RetryHint();
             try {
                 return (R) attemptOnce(request, path, type, kind, hint);

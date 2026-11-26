@@ -46,7 +46,8 @@ class RequesterTest {
 
     private Requester requester(URI base, Duration timeout) {
         return new Requester(http, base, mapper, timeout, USER_AGENT, RetryPolicy.none(),
-                java.time.Clock.systemUTC(), Sleeper.real(), new java.util.Random(1));
+                java.time.Clock.systemUTC(), Sleeper.real(), new java.util.Random(1),
+                new RateLimiter(dev.brickfolio.jsleeper.RateLimit.disabled(), java.time.Clock.systemUTC(), Sleeper.real()));
     }
 
     private Requester requester() {

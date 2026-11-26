@@ -68,7 +68,8 @@ class RequesterRetryTest {
 
     private Requester requester(RetryPolicy policy, Sleeper sleeper, RandomGenerator random, URI base) {
         return new Requester(HttpClient.newHttpClient(), base, mapper, Duration.ofSeconds(5), "ua",
-                policy, clock, sleeper, random);
+                policy, clock, sleeper, random,
+                new RateLimiter(dev.brickfolio.jsleeper.RateLimit.disabled(), clock, sleeper));
     }
 
     private Requester requester(RetryPolicy policy) {

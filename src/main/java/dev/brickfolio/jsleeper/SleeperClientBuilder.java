@@ -2,6 +2,7 @@ package dev.brickfolio.jsleeper;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.brickfolio.jsleeper.internal.JsonCodec;
+import dev.brickfolio.jsleeper.internal.RateLimiter;
 import dev.brickfolio.jsleeper.internal.Requester;
 import dev.brickfolio.jsleeper.internal.Sleeper;
 import java.net.URI;
@@ -28,6 +29,7 @@ public final class SleeperClientBuilder {
     private ObjectMapper objectMapper;
     private Clock clock = Clock.systemUTC();
     private RetryPolicy retryPolicy = RetryPolicy.defaults();
+    private RateLimit rateLimit = RateLimit.defaults();
 
     SleeperClientBuilder() {}
 
@@ -76,6 +78,12 @@ public final class SleeperClientBuilder {
         return this;
     }
 
+    /** Sets the client-side rate limit. Default {@link RateLimit#defaults()}; {@link RateLimit#disabled()} turns it off. */
+    public SleeperClientBuilder rateLimit(RateLimit rateLimit) {
+        this.rateLimit = Objects.requireNonNull(rateLimit, "rateLimit");
+        return this;
+    }
+
     /** Sets the clock used by time-dependent components. Default UTC system clock. */
     public SleeperClientBuilder clock(Clock clock) {
         this.clock = Objects.requireNonNull(clock, "clock");
@@ -98,7 +106,8 @@ public final class SleeperClientBuilder {
         ObjectMapper mapper = objectMapper != null
                 ? JsonCodec.copyOf(objectMapper) : JsonCodec.create();
         Requester requester = new Requester(client, base, mapper, requestTimeout, userAgent,
-                retryPolicy, clock, Sleeper.real(), threadSafeRandom());
+                retryPolicy, clock, Sleeper.real(), threadSafeRandom(),
+                new RateLimiter(rateLimit, clock, Sleeper.real()));
         return new SleeperClient(requester, clock);
     }
 
