@@ -288,13 +288,15 @@ SleeperException (base; carries method + path)
 
 These snippets show the intended public API and act as acceptance criteria for its ergonomics. They use only the types and methods defined above. If implementation forces a signature to change, update this section too. Imports are omitted. Everything lives under `dev.brickfolio.jsleeper` and its sub-packages.
 
+Every snippet is compiled and run against WireMock fixtures in `src/test/java/dev/brickfolio/jsleeper/examples/UsageExamplesTest.java`, which is the canonical copy. A snippet differs from the test only in the ways the test's Javadoc lists: output goes to a list, IDs come from the fixtures, and the caller's own code (`registry`, `MicrometerSleeperListener`, `render`, `ok`, `notFound`, `retryLater`, `serviceUnavailable`, `log`) is stubbed locally. When an API change breaks an example, update both in the same change.
+
 ### 1. Creating a client
 
 ```java
 // Defaults: production base URL, 900 req/min limiter, 3-attempt retry, 10s timeout.
 SleeperClient sleeper = SleeperClient.create();
 
-// Customised. Build once and share; the client is thread-safe.
+// Or customised (instead of the line above). Build once and share; the client is thread-safe.
 SleeperClient sleeper = SleeperClient.builder()
         .userAgent("brickfolio-dashboard/1.0")
         .requestTimeout(Duration.ofSeconds(5))
