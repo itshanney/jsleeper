@@ -27,7 +27,6 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -166,11 +165,12 @@ public final class Requester {
             }
             byte[] bytes = readLimited(body, path);
             stats.bytes = bytes.length;
-            if (status == STATUS_NOT_FOUND && isJson(response)) {
+            if (status == STATUS_NOT_FOUND && isAbsentResourceBody(bytes)) {
                 return emptyResult(kind, path, status, bytes);
             }
             stats.retryAfter = response.headers().firstValue("Retry-After").orElse(null);
-            // A non-JSON 404 is an unknown route (a library bug or API change), never "no data".
+            // Any other 404 body (an error object, an HTML page) is an unknown route, a library bug or
+            // API change, never "no data". Sleeper answers a missing resource with a blank or `null` body.
             throw SleeperApiException.forStatus(METHOD, path, status, snippet(bytes));
         } catch (IOException e) {
             throw new SleeperTransportException(METHOD, path, e);
@@ -320,10 +320,9 @@ public final class Requester {
         }
     }
 
-    private static boolean isJson(HttpResponse<?> response) {
-        return response.headers().firstValue("Content-Type")
-                .map(v -> v.trim().toLowerCase(Locale.ROOT).startsWith(JSON_CONTENT_TYPE))
-                .orElse(false);
+    /** A missing resource comes back as a 404 whose body is blank or the JSON literal null. */
+    private static boolean isAbsentResourceBody(byte[] bytes) {
+        return isBlank(bytes) || "null".equals(new String(bytes, StandardCharsets.UTF_8).strip());
     }
 
     private static boolean isBlank(byte[] bytes) {

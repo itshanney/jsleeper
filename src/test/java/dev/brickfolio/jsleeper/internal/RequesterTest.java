@@ -20,7 +20,6 @@ import dev.brickfolio.jsleeper.error.SleeperRateLimitException;
 import dev.brickfolio.jsleeper.error.SleeperServerException;
 import dev.brickfolio.jsleeper.error.SleeperTransportException;
 import java.io.IOException;
-import java.net.ServerSocket;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.time.Duration;
@@ -231,10 +230,63 @@ class RequesterTest {
     }
 
     @Test
-    void response_404_without_content_type_is_treated_as_unknown_route() {
-        wm.stubFor(get(urlEqualTo("/v1/bogus")).willReturn(aResponse().withStatus(404)));
+    void json_404_error_object_is_an_unknown_route_not_an_absent_resource() {
+        // What Sleeper sends for an unknown route when the request says Accept: application/json.
+        String body = "{\"errors\":{\"message\":\"Not found.\"}}";
+        stubJson("/v1/bogus", 404, body);
 
-        assertThatThrownBy(() -> call("bogus", type(Thing.class), EmptyKind.OPTIONAL))
+        for (EmptyKind kind : EmptyKind.values()) {
+            JavaType type = kind == EmptyKind.LIST ? listOf(Thing.class)
+                    : kind == EmptyKind.MAP ? mapOf(Thing.class) : type(Thing.class);
+            assertThatThrownBy(() -> call("bogus", type, kind)).as(kind.name())
+                    .isExactlyInstanceOf(SleeperApiException.class)
+                    .satisfies(e -> {
+                        assertThat(((SleeperApiException) e).status()).isEqualTo(404);
+                        assertThat(((SleeperApiException) e).bodySnippet()).isEqualTo(body);
+                    });
+        }
+    }
+
+    @Test
+    void response_404_with_an_empty_or_whitespace_body_is_an_absent_resource_whatever_the_content_type() {
+        wm.stubFor(get(urlEqualTo("/v1/none")).willReturn(aResponse().withStatus(404)));
+        wm.stubFor(get(urlEqualTo("/v1/blank")).willReturn(aResponse().withStatus(404)
+                .withHeader("Content-Type", "text/html").withBody(" \n")));
+
+        Optional<Thing> none = call("none", type(Thing.class), EmptyKind.OPTIONAL);
+        List<Thing> blank = call("blank", listOf(Thing.class), EmptyKind.LIST);
+
+        assertThat(none).isEmpty();
+        assertThat(blank).isEmpty();
+    }
+
+    @Test
+    void response_404_with_a_null_body_is_absent_whatever_the_content_type() {
+        wm.stubFor(get(urlEqualTo("/v1/plain")).willReturn(aResponse().withStatus(404)
+                .withHeader("Content-Type", "text/plain").withBody("null")));
+        wm.stubFor(get(urlEqualTo("/v1/untyped")).willReturn(aResponse().withStatus(404).withBody(" null\n")));
+
+        Optional<Thing> plain = call("plain", type(Thing.class), EmptyKind.OPTIONAL);
+        Map<String, Thing> untyped = call("untyped", mapOf(Thing.class), EmptyKind.MAP);
+
+        assertThat(plain).isEmpty();
+        assertThat(untyped).isEmpty();
+    }
+
+    @Test
+    void response_404_with_an_empty_body_throws_for_required() {
+        wm.stubFor(get(urlEqualTo("/v1/none")).willReturn(aResponse().withStatus(404)));
+
+        assertThatThrownBy(() -> call("none", type(Thing.class), EmptyKind.REQUIRED))
+                .isExactlyInstanceOf(SleeperApiException.class)
+                .extracting(e -> ((SleeperApiException) e).status()).isEqualTo(404);
+    }
+
+    @Test
+    void response_404_with_a_json_array_body_is_not_treated_as_absent() {
+        stubJson("/v1/odd", 404, "[]");
+
+        assertThatThrownBy(() -> call("odd", listOf(Thing.class), EmptyKind.LIST))
                 .isExactlyInstanceOf(SleeperApiException.class);
     }
 
@@ -304,12 +356,9 @@ class RequesterTest {
     // ---- transport ----
 
     @Test
-    void connection_refused_throws_transport_exception() throws IOException {
-        int closedPort;
-        try (ServerSocket s = new ServerSocket(0)) {
-            closedPort = s.getLocalPort();
-        }
-        Requester r = requester(URI.create("http://localhost:" + closedPort), Duration.ofSeconds(2));
+    void connection_refused_throws_transport_exception() {
+        // Port 1 (tcpmux) is reserved and essentially never listening, so the refusal is deterministic.
+        Requester r = requester(URI.create("http://127.0.0.1:1"), Duration.ofSeconds(2));
 
         assertThatThrownBy(() -> r.get("/t", List.of("thing"), Map.of(), type(Thing.class),
                 EmptyKind.OPTIONAL, null))

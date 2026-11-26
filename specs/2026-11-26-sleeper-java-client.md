@@ -35,9 +35,10 @@ jsleeper is a small, dependency-light Java library. It wraps the 17 read-only GE
 | `/draft/{id}`, `/draft/{id}/picks`, `/draft/{id}/traded_picks` | **404** | `application/json` | `null` |
 | `/user/{id}/leagues/…`, `/user/{id}/drafts/…`, `/league/{id}/users`, `/league/{id}/transactions/{w}`, `/league/{id}/traded_picks`, `/league/{id}/drafts` | 200 | `application/json` | `[]` |
 | `/players/nfl/trending/{invalid type}` | 200 | `application/json` | `[]` |
-| A route that doesn't exist (e.g. `/bogus/path`, or a typo in our own path) | **404** | **`text/html`** | Sleeper web-app HTML page |
+| A route that doesn't exist (e.g. `/bogus/path`, or a typo in our own path), requested **without** an `Accept` header | **404** | **`text/html`** | Sleeper web-app HTML page |
+| The same unknown route **with `Accept: application/json`** (which the client always sends) | **404** | **`application/json`** | `{"errors":{"message":"Not found."}}` (found by the live tests, 2026-11-26) |
 
-Other things the probe showed: `/state/nfl` also returns `season_has_scores` (boolean), which the docs omit. Trending `player_id` values include team codes (e.g. `"WAS"`).
+The last two rows matter most. An unknown route is a 404 with a JSON content type whenever the client asks for JSON, so the content type cannot tell it apart from a missing resource; only the body can. A missing resource has a body of `null` (or nothing), while an unknown route has an error object or a page. Other things the probe showed: `/state/nfl` also returns `season_has_scores` (boolean), which the docs omit. Trending `player_id` values include team codes (e.g. `"WAS"`).
 
 ---
 
@@ -218,12 +219,12 @@ The Requester classifies every response before deserialising it:
 
 | Response | Meaning | `Optional<T>` method | `List`/`Map` method |
 |---|---|---|---|
-| 2xx, JSON body `null` or empty | Resource absent | `empty()` | empty collection |
+| 2xx, body `null` or empty | Resource absent | `empty()` | empty collection |
 | 2xx, JSON `[]` | No rows. This can also mean the parent ID doesn't exist; the API doesn't tell the two apart. | n/a | empty collection |
-| **404 with `application/json`** (body `null`) | Resource absent | `empty()` | empty collection |
-| **404 with any other content type** (HTML) | **Unknown route.** That's a bug in this library or a Sleeper API change, not a missing ID. | throw `SleeperApiException(404)` | throw `SleeperApiException(404)` |
+| **404, body blank or `null`** (any content type) | Resource absent | `empty()` | empty collection |
+| **404, any other body** (`{"errors":{"message":"Not found."}}`, an HTML page, anything else) | **Unknown route.** That's a bug in this library or a Sleeper API change, not a missing ID. | throw `SleeperApiException(404)` | throw `SleeperApiException(404)` |
 
-The content-type check is what keeps a broken path from silently looking like "no data". The live smoke tests (see Operational Concerns) assert that every endpoint still answers with JSON, so a Sleeper route change shows up as a test failure.
+The 404 rule looks at the **body**, not the content type: Sleeper sends `application/json` for both a missing resource and an unknown route when the request asks for JSON (see D7). The body check is what keeps a broken path from silently looking like "no data". The live smoke tests (see Operational Concerns) re-run the D7 probe, so a change in either body shows up as a test failure.
 
 | Java method | Path | Returns | Null/404 handling |
 |---|---|---|---|
@@ -264,7 +265,7 @@ SleeperException (base; carries method + path)
 └── SleeperDeserializationException  2xx with an unparseable body; jsonPath(), bodySnippet()
 ```
 
-- **404:** follows the empty-result rules above. A JSON 404 means an absent resource and gives an empty result. A non-JSON 404 means an unknown route and throws. Rationale: a missing league is a normal outcome for callers, but a broken route is a defect and must be loud.
+- **404:** follows the empty-result rules above. A 404 whose body is blank or `null` means an absent resource and gives an empty result. Any other 404 body means an unknown route and throws. Rationale: a missing league is a normal outcome for callers, but a broken route is a defect and must be loud.
 - **Client-side limiter timeout:** throws `SleeperRateLimitException` with `status() == 429` and `isClientSide() == true`. Nothing was sent, so callers handle it exactly like a server 429.
 - **Interrupted while waiting** (rate limiter or backoff): restore the interrupt flag, then throw `SleeperTransportException` with an `InterruptedException` cause.
 
@@ -480,7 +481,7 @@ try {
     // 5xx after retries; e.status() is 500/503/…
     return serviceUnavailable();
 } catch (SleeperApiException e) {
-    // Any other non-2xx, including an HTML 404 (unknown route, which is a bug or an API change).
+    // Any other non-2xx, including a 404 with an error body or HTML (unknown route, which is a bug or an API change).
     log.error("Sleeper {} {} -> {}: {}", e.method(), e.path(), e.status(), e.bodySnippet());
     throw e;
 } catch (SleeperTransportException | SleeperDeserializationException e) {
@@ -553,7 +554,7 @@ URI thumb = Avatars.thumb(user.avatar());   // https://sleepercdn.com/avatars/th
 1. `rateLimiter.acquire()`. Block until a token is free; give up at `maxWait` → `SleeperRateLimitException`.
 2. `listener.onRequest`, then `httpClient.send(req, BodyHandlers.ofInputStream())`.
 3. Status 200: peek the first non-whitespace byte. If the body is `null` or empty → empty result. Otherwise stream it into `mapper.readValue(stream, javaType)`.
-4. Status 404: if the content type is `application/json`, return the empty result. Otherwise throw `SleeperApiException(404)` (unknown route). Retryable status or `IOException`: compute the backoff (or `Retry-After`), sleep, go back to step 1 (a retry also takes a rate-limit token). Any other status: throw the mapped exception.
+4. Status 404: if the body is blank or `null`, return the empty result. Otherwise throw `SleeperApiException(404)` (unknown route). Retryable status or `IOException`: compute the backoff (or `Retry-After`), sleep, go back to step 1 (a retry also takes a rate-limit token). Any other status: throw the mapped exception.
 5. `listener.onResponse` runs on every attempt, with the status or exception.
 
 ---
@@ -567,7 +568,7 @@ URI thumb = Avatars.thumb(user.avatar());   // https://sleepercdn.com/avatars/th
 | Sync vs async | Sync only; async only (`CompletableFuture`); both | **Sync only** | Simplest to use, test and debug. Thread-safe so callers can parallelise with virtual threads (always available on the Java 25 baseline) or executors. The rate limiter and `PlayerDirectory` lock must use `ReentrantLock`, not `synchronized`, so they never pin virtual threads. Two API surfaces would double the tests and docs. | Reactive users wrap calls themselves. An async facade can come later without breaking changes (Future Work). |
 | Models | Records; Lombok/Immutables; mutable POJOs; raw `JsonNode` | **Records + tolerant mapping, loose `Map` for undocumented objects** | Immutable, no annotation processor. A loose map is honest about what the docs don't specify. | Callers read `settings.get("playoff_week_start")` untyped. If Sleeper renames a documented field, the value becomes null instead of failing (we prefer that over a crash). |
 | Unknown enum values | Fail; String fields; open enum with UNKNOWN + raw string | **Open enum + raw** | Type safety for known values. Never crashes on new ones. | Two accessors per enum field. |
-| Not-found semantics | Throw `NotFoundException`; return null; `Optional`/empty list | **`Optional` / empty list, with JSON-vs-HTML 404 split** | Sleeper mixes 200+`null`, 200+`[]` and 404+`null` for missing IDs (D7). A single empty contract hides that mess from callers. The HTML 404 check keeps route bugs loud. | A typo in a league ID looks the same as "no data". The Javadoc spells this out. We depend on Sleeper continuing to send JSON on 404s; the live smoke tests watch for that. |
+| Not-found semantics | Throw `NotFoundException`; return null; `Optional`/empty list | **`Optional` / empty list, with a 404 split by body** | Sleeper mixes 200+`null`, 200+`[]` and 404+`null` for missing IDs (D7). A single empty contract hides that mess from callers. Treating only a blank or `null` 404 body as absent keeps route bugs loud. | A typo in a league ID looks the same as "no data". The Javadoc spells this out. We depend on Sleeper continuing to answer a missing resource with a `null` body and an unknown route with something else; the live smoke tests watch for that. |
 | Rate limiting | None (document only); global static limiter; per-client limiter | **Per-client token bucket, 900/min default** | An IP block is a severe, opaque failure. Prevention is cheap. Per-client limiters avoid hidden global state. | Several clients in one JVM, or several JVMs on one IP, can exceed the limit together. The docs recommend one client per process, and the limit is configurable. |
 | Retry | None; fixed; exponential + jitter | **Exponential + full jitter, 3 attempts** | Every call is an idempotent GET. Jitter avoids synchronised retry bursts. | It adds up to about 12s of worst-case latency before a failure surfaces. Callers can set `RetryPolicy.none()`. |
 | Player caching | Inside the client (implicit); separate opt-in `PlayerDirectory`; none | **Opt-in `PlayerDirectory`, in-memory + caller-owned snapshot streams** | Keeps the client a plain, predictable 1:1 mapping, and makes the cache's cost and lifecycle visible. Caller-owned streams avoid choosing a file path or database. | Callers who skip it and call `players().all()` in a loop break Sleeper's guidance. Mitigated with Javadoc and a one-time WARN log if the unfiltered call runs more than once per hour per client. |
@@ -589,7 +590,7 @@ This is a library, so "operations" means its behaviour inside consumer processes
 **Testing strategy (part of "done")**
 - **Fixtures:** one recorded JSON response per endpoint under `src/test/resources/fixtures/`, captured from the live API, not copied from the docs, because the doc examples contain `//` comments and trailing commas. Include edge fixtures: a `null` body, a bracket with `t1_from`/`t2_from`, a transaction with FAAB `waiver_budget`, a draft pick with a blank `picked_by`, a matchup with null `matchup_id` and `custom_points`, and players with team-code IDs.
 - **Unit tests:** deserialisation of every model against the fixtures; unknown enum value → `UNKNOWN` with the raw string kept; an extra unknown field is ignored.
-- **WireMock tests:** retry and backoff (429 then 200; three 503s → exception), `Retry-After`, JSON 404+`null` → empty, **HTML 404 → `SleeperApiException`**, 200+`null` → empty, 200+`[]` → empty list, timeout → `SleeperTransportException`, and path encoding of usernames with spaces or unicode.
+- **WireMock tests:** retry and backoff (429 then 200; three 503s → exception), `Retry-After`, 404+`null` → empty, 404 with an empty body → empty, **404 with an error object or HTML → `SleeperApiException`**, 200+`null` → empty, 200+`[]` → empty list, timeout → `SleeperTransportException`, and path encoding of usernames with spaces or unicode.
 - **Rate limiter and directory:** deterministic tests with a fake `Clock` and an injectable sleeper.
 - **Live smoke tests:** tagged `@Tag("live")` and excluded by default. Run nightly in CI against a known public league ID (configured as a CI variable), with about 20 calls per run. They catch schema drift early. They also re-run the D7 probe (nonexistent IDs) and assert the documented status/content-type for each endpoint, so a Sleeper change to its not-found behaviour fails the build instead of silently changing results.
 
@@ -669,10 +670,10 @@ Increments run in order unless the "Depends on" column says otherwise. Increment
 
 **3. `Requester`, basic version** (M)
 - `internal/Requester.get(path, query, JavaType, EmptyKind)` with `EmptyKind` = `OPTIONAL | LIST | MAP | REQUIRED`.
-- Builds the URI with path-segment encoding, sends through `HttpClient` (`BodyHandlers.ofInputStream`), and applies the **empty-result rules** table: 2xx `null`/empty body, JSON 404, HTML 404.
+- Builds the URI with path-segment encoding, sends through `HttpClient` (`BodyHandlers.ofInputStream`), and applies the **empty-result rules** table: 2xx `null`/empty body, 404 with a blank or `null` body, 404 with any other body.
 - Streams the body into Jackson. Wraps `IOException` as `SleeperTransportException` and parse failures as `SleeperDeserializationException`, keeping the first 512 bytes of the body.
 - No retries, rate limiting or listeners yet.
-- **Done when:** WireMock tests cover every row of the D7 table (200+`null`, 200+`[]`, JSON 404, HTML 404 → throws, 500 → `SleeperServerException`, malformed JSON, connection refused, timeout), plus path encoding of `"some user/ü"`.
+- **Done when:** WireMock tests cover every row of the D7 table (200+`null`, 200+`[]`, 404+`null`, 404 with an error object or HTML → throws, 500 → `SleeperServerException`, malformed JSON, connection refused, timeout), plus path encoding of `"some user/ü"`.
 
 **4. `SleeperClient` + builder + `StateApi`** (M). This is the first vertical slice.
 - `SleeperClient.create()` and `builder()` with these options only: `baseUri`, `httpClient`, `requestTimeout`, `userAgent`, `objectMapper`, `clock`. Validates its configuration in `build()`.
@@ -695,7 +696,7 @@ Increments run in order unless the "Depends on" column says otherwise. Increment
 - The `League` record and `LeagueStatus` enum. Loosely typed `settings` and `scoringSettings`. `rosterPositions`.
 - The `LeagueUser` record with `teamName()`.
 - `LeaguesApi.get` (`Optional`), `LeaguesApi.users`, and `UsersApi.leagues(userId, Sport, int season)`.
-- **Done when:** fixture tests pass; a JSON 404 on `get` gives `empty()`; an empty `[]` gives an empty list; `teamName()` handles missing metadata.
+- **Done when:** fixture tests pass; a 404 with a `null` body on `get` gives `empty()`; an empty `[]` gives an empty list; `teamName()` handles missing metadata.
 
 **8. Rosters** (S)
 - The `Roster` and `RosterSettings` records, `pointsFor()` and `pointsAgainst()` as `BigDecimal` with scale 2 (D6), and `LeaguesApi.rosters`.
@@ -722,7 +723,7 @@ Increments run in order unless the "Depends on" column says otherwise. Increment
 **13. Draft picks + draft traded picks** (S)
 - The `DraftPick` and `DraftPickMetadata` records. A blank `picked_by` becomes null; a string `roster_id` is coerced.
 - `DraftsApi.picks` and `DraftsApi.tradedPicks` (reusing `TradedPick`).
-- **Done when:** fixture tests pass, including a pick with no `roster_id`, `round` or `draft_slot` (the docs' third example). A JSON 404 gives an empty list.
+- **Done when:** fixture tests pass, including a pick with no `roster_id`, `round` or `draft_slot` (the docs' third example). A 404 with a `null` body gives an empty list.
 
 **14. Players** (M)
 - The `Player` record with nested `ExternalIds` (all `String`; numbers coerced) and a derived `fullName()`. `TrendType`, `TrendingPlayer`, and the `PlayerQuery` and `TrendingQuery` builders.

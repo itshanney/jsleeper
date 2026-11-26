@@ -8,6 +8,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.tomakehurst.wiremock.http.Fault;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import dev.brickfolio.jsleeper.RateLimit;
 import dev.brickfolio.jsleeper.RequestEvent;
@@ -16,8 +17,6 @@ import dev.brickfolio.jsleeper.ResponseEvent;
 import dev.brickfolio.jsleeper.RetryPolicy;
 import dev.brickfolio.jsleeper.error.SleeperServerException;
 import dev.brickfolio.jsleeper.error.SleeperTransportException;
-import java.io.IOException;
-import java.net.ServerSocket;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.time.Clock;
@@ -152,14 +151,11 @@ class RequestListenerTest {
     }
 
     @Test
-    void a_transport_failure_has_an_empty_status_and_a_transport_retry_reason() throws IOException {
-        URI closed;
-        try (ServerSocket s = new ServerSocket(0)) {
-            closed = URI.create("http://localhost:" + s.getLocalPort());
-        }
+    void a_transport_failure_has_an_empty_status_and_a_transport_retry_reason() {
+        wm.stubFor(get(urlEqualTo("/v1/thing/42")).willReturn(aResponse().withFault(Fault.CONNECTION_RESET_BY_PEER)));
         Recorder rec = new Recorder();
 
-        assertThatThrownBy(() -> call(requester(closed, RetryPolicy.defaults(), rec)))
+        assertThatThrownBy(() -> call(requester(base(), RetryPolicy.defaults(), rec)))
                 .isExactlyInstanceOf(SleeperTransportException.class);
 
         assertThat(rec.responses).hasSize(3);

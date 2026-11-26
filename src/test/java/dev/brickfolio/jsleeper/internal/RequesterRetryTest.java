@@ -10,6 +10,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.tomakehurst.wiremock.http.Fault;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import dev.brickfolio.jsleeper.RequestListener;
@@ -19,8 +20,6 @@ import dev.brickfolio.jsleeper.error.SleeperBadRequestException;
 import dev.brickfolio.jsleeper.error.SleeperRateLimitException;
 import dev.brickfolio.jsleeper.error.SleeperServerException;
 import dev.brickfolio.jsleeper.error.SleeperTransportException;
-import java.io.IOException;
-import java.net.ServerSocket;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.time.Clock;
@@ -256,20 +255,20 @@ class RequesterRetryTest {
     }
 
     @Test
-    void connection_refused_is_retried_then_throws_transport_exception() throws IOException {
-        URI closed = closedPortUri();
+    void transport_failures_are_retried_then_throw_transport_exception() {
+        stubConnectionReset();
 
-        assertThatThrownBy(() -> call(requester(RetryPolicy.defaults(), recordingSleeper, new MaxRandom(), closed)))
+        assertThatThrownBy(() -> call(requester(RetryPolicy.defaults())))
                 .isExactlyInstanceOf(SleeperTransportException.class);
         assertThat(sleeps).hasSize(2);
     }
 
     @Test
-    void transport_errors_are_not_retried_when_disabled() throws IOException {
-        URI closed = closedPortUri();
+    void transport_errors_are_not_retried_when_disabled() {
+        stubConnectionReset();
         RetryPolicy noTransport = RetryPolicy.builder().retryOnTransportErrors(false).build();
 
-        assertThatThrownBy(() -> call(requester(noTransport, recordingSleeper, new MaxRandom(), closed)))
+        assertThatThrownBy(() -> call(requester(noTransport)))
                 .isExactlyInstanceOf(SleeperTransportException.class);
         assertThat(sleeps).isEmpty();
     }
@@ -334,9 +333,8 @@ class RequesterRetryTest {
         wm.verify(1, getRequestedFor(urlEqualTo(PATH)));
     }
 
-    private static URI closedPortUri() throws IOException {
-        try (ServerSocket s = new ServerSocket(0)) {
-            return URI.create("http://localhost:" + s.getLocalPort());
-        }
+    /** A deterministic transport failure: WireMock resets the connection without a response. */
+    private void stubConnectionReset() {
+        wm.stubFor(get(urlEqualTo(PATH)).willReturn(aResponse().withFault(Fault.CONNECTION_RESET_BY_PEER)));
     }
 }

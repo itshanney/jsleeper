@@ -9,6 +9,7 @@ import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMoc
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.github.tomakehurst.wiremock.http.Fault;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import dev.brickfolio.jsleeper.Fixtures;
 import dev.brickfolio.jsleeper.RateLimit;
@@ -46,7 +47,6 @@ import dev.brickfolio.jsleeper.util.Matchups;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.ServerSocket;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -558,7 +558,7 @@ class UsageExamplesTest {
             // 5xx after retries; e.status() is 500/503/…
             return serviceUnavailable();
         } catch (SleeperApiException e) {
-            // Any other non-2xx, including an HTML 404 (unknown route, which is a bug or an API change).
+            // Any other non-2xx, including a 404 with an error body or HTML (unknown route, which is a bug or an API change).
             log.error("Sleeper {} {} -> {}: {}", e.method(), e.path(), e.status(), e.bodySnippet());
             throw e;
         } catch (SleeperTransportException | SleeperDeserializationException e) {
@@ -568,7 +568,7 @@ class UsageExamplesTest {
     }
 
     @Test
-    void section_10_error_handling_drives_every_branch() throws IOException {
+    void section_10_error_handling_drives_every_branch() {
         SleeperClient sleeper = testClient();
         stubFixture("/league/found", "league.json");
         stubJson("/league/absent", 404, "null");
@@ -592,13 +592,9 @@ class UsageExamplesTest {
         assertThat(out).containsExactly("Sleeper call failed <- SleeperDeserializationException");
 
         out.clear();
-        int closedPort;
-        try (ServerSocket socket = new ServerSocket(0)) {
-            closedPort = socket.getLocalPort();
-        }
-        SleeperClient unreachable = SleeperClient.builder().baseUri("http://localhost:" + closedPort)
-                .retryPolicy(RetryPolicy.none()).rateLimit(RateLimit.disabled()).build();
-        assertThatThrownBy(() -> handle(unreachable, "anything")).isExactlyInstanceOf(SleeperTransportException.class);
+        wm.stubFor(get(urlEqualTo("/v1/league/reset")).willReturn(aResponse().withFault(Fault.CONNECTION_RESET_BY_PEER)));
+        SleeperClient unreachable = testClient();
+        assertThatThrownBy(() -> handle(unreachable, "reset")).isExactlyInstanceOf(SleeperTransportException.class);
         assertThat(out).containsExactly("Sleeper call failed <- SleeperTransportException");
     }
 
