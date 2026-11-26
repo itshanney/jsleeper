@@ -20,6 +20,8 @@ public final class Matchups {
      * the second is away. A row with a null {@code matchupId} becomes its own pair with a null
      * away side.
      *
+     * @return the matchup pairs, or an empty list if there are none
+     * @param rows the matchup rows of one week
      * @throws NullPointerException if {@code rows} is null
      * @throws IllegalArgumentException if more than two rows share a {@code matchupId}
      */

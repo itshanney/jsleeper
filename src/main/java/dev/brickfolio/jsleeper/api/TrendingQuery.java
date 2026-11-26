@@ -14,7 +14,11 @@ public final class TrendingQuery {
         this.limit = limit;
     }
 
-    /** Returns a new builder. */
+    /**
+     * Returns a new builder.
+     *
+     * @return a new builder
+     */
     public static Builder builder() {
         return new Builder();
     }
@@ -37,13 +41,23 @@ public final class TrendingQuery {
 
         private Builder() {}
 
-        /** Hours to look back; must be at least 1 (checked in {@link #build()}). */
+        /**
+         * Hours to look back; must be at least 1 (checked in {@link #build()}).
+         *
+         * @return this builder
+         * @param lookbackHours hours to look back; at least 1
+         */
         public Builder lookbackHours(int lookbackHours) {
             this.lookbackHours = lookbackHours;
             return this;
         }
 
-        /** Maximum results; must be at least 1 (checked in {@link #build()}). */
+        /**
+         * Maximum results; must be at least 1 (checked in {@link #build()}).
+         *
+         * @return this builder
+         * @param limit maximum results; at least 1
+         */
         public Builder limit(int limit) {
             this.limit = limit;
             return this;
@@ -52,6 +66,7 @@ public final class TrendingQuery {
         /**
          * Builds the query.
          *
+         * @return the configured trending query
          * @throws IllegalArgumentException if {@code lookbackHours} or {@code limit} is below 1
          */
         public TrendingQuery build() {

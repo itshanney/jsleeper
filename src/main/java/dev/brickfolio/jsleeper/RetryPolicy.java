@@ -45,42 +45,72 @@ public final class RetryPolicy {
     /**
      * Returns the default policy: 3 attempts in total, backoff from 500 ms doubling up to 8 s, retry
      * on 429, 500, 502, 503, 504 and transport errors (I/O failures and timeouts).
+     *
+     * @return the default settings
      */
     public static RetryPolicy defaults() {
         return builder().build();
     }
 
-    /** Returns a policy that never retries (a single attempt). */
+    /**
+     * Returns a policy that never retries (a single attempt).
+     *
+     * @return a policy that never retries
+     */
     public static RetryPolicy none() {
         return builder().maxAttempts(1).build();
     }
 
-    /** Returns a builder starting from the defaults. */
+    /**
+     * Returns a builder starting from the defaults.
+     *
+     * @return a new builder
+     */
     public static Builder builder() {
         return new Builder();
     }
 
-    /** Returns the total number of attempts, including the first. */
+    /**
+     * Returns the total number of attempts, including the first.
+     *
+     * @return the total attempts
+     */
     public int maxAttempts() {
         return maxAttempts;
     }
 
-    /** Returns the backoff ceiling before the first retry. */
+    /**
+     * Returns the backoff ceiling before the first retry.
+     *
+     * @return the first backoff ceiling
+     */
     public Duration initialBackoff() {
         return initialBackoff;
     }
 
-    /** Returns the largest backoff ceiling. */
+    /**
+     * Returns the largest backoff ceiling.
+     *
+     * @return the largest backoff ceiling
+     */
     public Duration maxBackoff() {
         return maxBackoff;
     }
 
-    /** Returns the HTTP statuses that are retried. */
+    /**
+     * Returns the HTTP statuses that are retried.
+     *
+     * @return the retried statuses
+     */
     public Set<Integer> retryOnStatuses() {
         return retryOnStatuses;
     }
 
-    /** Returns whether transport errors (I/O failures, timeouts) are retried. */
+    /**
+     * Returns whether transport errors (I/O failures, timeouts) are retried.
+     *
+     * @return true if transport errors are retried
+     */
     public boolean retryOnTransportErrors() {
         return retryOnTransportErrors;
     }
@@ -90,6 +120,7 @@ public final class RetryPolicy {
      * {@code min(maxBackoff, initialBackoff * 2^(retryIndex-1))}.
      *
      * @param retryIndex 1 for the first retry
+     * @return the ceiling of the random wait
      * @throws IllegalArgumentException if {@code retryIndex} is below 1
      */
     public Duration backoffCeiling(int retryIndex) {
@@ -118,31 +149,56 @@ public final class RetryPolicy {
 
         private Builder() {}
 
-        /** Sets the total number of attempts, including the first; at least 1. */
+        /**
+         * Sets the total number of attempts, including the first; at least 1.
+         *
+         * @return this builder
+         * @param maxAttempts total attempts including the first; at least 1
+         */
         public Builder maxAttempts(int maxAttempts) {
             this.maxAttempts = maxAttempts;
             return this;
         }
 
-        /** Sets the backoff ceiling for the first retry; must be positive. */
+        /**
+         * Sets the backoff ceiling for the first retry; must be positive.
+         *
+         * @return this builder
+         * @param initialBackoff the backoff ceiling before the first retry; positive
+         */
         public Builder initialBackoff(Duration initialBackoff) {
             this.initialBackoff = Objects.requireNonNull(initialBackoff, "initialBackoff");
             return this;
         }
 
-        /** Sets the largest backoff ceiling; must not be below the initial backoff. */
+        /**
+         * Sets the largest backoff ceiling; must not be below the initial backoff.
+         *
+         * @return this builder
+         * @param maxBackoff max backoff
+         */
         public Builder maxBackoff(Duration maxBackoff) {
             this.maxBackoff = Objects.requireNonNull(maxBackoff, "maxBackoff");
             return this;
         }
 
-        /** Replaces the set of HTTP statuses that are retried. */
+        /**
+         * Replaces the set of HTTP statuses that are retried.
+         *
+         * @return this builder
+         * @param statuses the HTTP statuses to retry
+         */
         public Builder retryOn(Set<Integer> statuses) {
             this.retryOnStatuses = Set.copyOf(Objects.requireNonNull(statuses, "statuses"));
             return this;
         }
 
-        /** Sets whether transport errors (I/O failures, timeouts) are retried. */
+        /**
+         * Sets whether transport errors (I/O failures, timeouts) are retried.
+         *
+         * @return this builder
+         * @param retryOnTransportErrors whether I/O failures and timeouts are retried
+         */
         public Builder retryOnTransportErrors(boolean retryOnTransportErrors) {
             this.retryOnTransportErrors = retryOnTransportErrors;
             return this;
@@ -151,6 +207,7 @@ public final class RetryPolicy {
         /**
          * Builds the policy.
          *
+         * @return the configured retry policy
          * @throws IllegalArgumentException if {@code maxAttempts} is below 1, the initial backoff
          *     is not positive, or the maximum backoff is below the initial backoff
          */

@@ -46,17 +46,29 @@ public record RosterSettings(
                 null, null, null);
     }
 
-    /** Points scored, as {@code fpts + fptsDecimal / 100} with scale 2; null parts count as 0. */
+    /**
+     * Points scored, as {@code fpts + fptsDecimal / 100} with scale 2; null parts count as 0.
+     *
+     * @return points scored
+     */
     public BigDecimal pointsFor() {
         return combine(fpts, fptsDecimal);
     }
 
-    /** Points conceded, as {@code fptsAgainst + fptsAgainstDecimal / 100} with scale 2. */
+    /**
+     * Points conceded, as {@code fptsAgainst + fptsAgainstDecimal / 100} with scale 2.
+     *
+     * @return points conceded
+     */
     public BigDecimal pointsAgainst() {
         return combine(fptsAgainst, fptsAgainstDecimal);
     }
 
-    /** Best-possible-lineup points, as {@code ppts + pptsDecimal / 100} with scale 2. */
+    /**
+     * Best-possible-lineup points, as {@code ppts + pptsDecimal / 100} with scale 2.
+     *
+     * @return best-possible-lineup points
+     */
     public BigDecimal potentialPoints() {
         return combine(ppts, pptsDecimal);
     }

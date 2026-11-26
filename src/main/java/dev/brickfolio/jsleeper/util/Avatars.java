@@ -14,6 +14,8 @@ public final class Avatars {
     /**
      * Returns the full-size image URL.
      *
+     * @return the image URL
+     * @param avatarId the avatar ID; must not be blank
      * @throws IllegalArgumentException if {@code avatarId} is null or blank
      */
     public static URI full(String avatarId) {
@@ -23,6 +25,8 @@ public final class Avatars {
     /**
      * Returns the thumbnail URL.
      *
+     * @return the image URL
+     * @param avatarId the avatar ID; must not be blank
      * @throws IllegalArgumentException if {@code avatarId} is null or blank
      */
     public static URI thumb(String avatarId) {

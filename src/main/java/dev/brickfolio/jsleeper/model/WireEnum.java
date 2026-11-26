@@ -5,7 +5,11 @@ package dev.brickfolio.jsleeper.model;
  */
 public interface WireEnum {
 
-    /** Returns the exact string Sleeper uses for this constant; {@code UNKNOWN} returns "unknown". */
+    /**
+     * Returns the exact string Sleeper uses for this constant; {@code UNKNOWN} returns "unknown".
+     *
+     * @return the wire string
+     */
     String wireValue();
 
     /**
@@ -15,6 +19,8 @@ public interface WireEnum {
      * @param type the enum class
      * @param wire the raw wire string, may be null
      * @param unknown the constant returned for null or unrecognised values
+     * @return the matching constant, or {@code UNKNOWN} if unrecognised
+     * @param <E> the enum type
      */
     static <E extends Enum<E> & WireEnum> E fromWire(Class<E> type, String wire, E unknown) {
         if (wire != null) {

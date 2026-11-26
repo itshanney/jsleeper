@@ -23,7 +23,11 @@ public final class DraftsApi {
 
     private final Requester requester;
 
-    /** For use by {@link dev.brickfolio.jsleeper.SleeperClient} only. */
+    /**
+     * For use by {@link dev.brickfolio.jsleeper.SleeperClient} only.
+     *
+     * @param requester the shared requester
+     */
     @SuppressWarnings("exports")
     public DraftsApi(Requester requester) {
         this.requester = Objects.requireNonNull(requester, "requester");
@@ -33,6 +37,8 @@ public final class DraftsApi {
      * Returns a draft ({@code /draft/{draftId}}), or empty if it does not exist. Unlike the list
      * endpoints, this response fills {@code slotToRosterId}.
      *
+     * @return the draft, or empty if it does not exist
+     * @param draftId the draft ID
      * @throws IllegalArgumentException if {@code draftId} is null or blank
      */
     public Optional<Draft> get(String draftId) {
@@ -43,6 +49,8 @@ public final class DraftsApi {
     /**
      * Returns all picks of a draft ({@code /draft/{draftId}/picks}), or an empty list.
      *
+     * @return the draft picks, or an empty list if there are none
+     * @param draftId the draft ID
      * @throws IllegalArgumentException if {@code draftId} is null or blank
      */
     public List<DraftPick> picks(String draftId) {
@@ -55,6 +63,8 @@ public final class DraftsApi {
      * Returns the traded picks of a draft ({@code /draft/{draftId}/traded_picks}), or an empty
      * list.
      *
+     * @return the traded picks, or an empty list if there are none
+     * @param draftId the draft ID
      * @throws IllegalArgumentException if {@code draftId} is null or blank
      */
     public List<TradedPick> tradedPicks(String draftId) {

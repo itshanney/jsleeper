@@ -34,7 +34,11 @@ public final class RateLimit {
         this.maxWait = maxWait;
     }
 
-    /** Returns the default limit: 900 per minute, burst 50, wait at most 30 seconds. */
+    /**
+     * Returns the default limit: 900 per minute, burst 50, wait at most 30 seconds.
+     *
+     * @return the default settings
+     */
     public static RateLimit defaults() {
         return new RateLimit(false, DEFAULT_PER_MINUTE, DEFAULT_BURST, DEFAULT_MAX_WAIT);
     }
@@ -43,6 +47,8 @@ public final class RateLimit {
      * Returns a limit of {@code n} requests per minute. The burst defaults to 50, or {@code n} if
      * that is smaller, and the maximum wait to 30 seconds.
      *
+     * @return a new limit
+     * @param n requests per minute; at least 1
      * @throws IllegalArgumentException if {@code n} is below 1
      */
     public static RateLimit perMinute(int n) {
@@ -52,7 +58,11 @@ public final class RateLimit {
         return new RateLimit(false, n, Math.min(DEFAULT_BURST, n), DEFAULT_MAX_WAIT);
     }
 
-    /** Returns a limit that never delays or rejects a request. */
+    /**
+     * Returns a limit that never delays or rejects a request.
+     *
+     * @return a limit that never delays or rejects
+     */
     public static RateLimit disabled() {
         return DISABLED;
     }
@@ -60,6 +70,8 @@ public final class RateLimit {
     /**
      * Returns a copy with a different burst size.
      *
+     * @return a new limit with the change applied
+     * @param burst requests allowed at once; at least 1
      * @throws IllegalArgumentException if {@code burst} is below 1
      */
     public RateLimit burst(int burst) {
@@ -73,6 +85,8 @@ public final class RateLimit {
      * Returns a copy with a different longest wait. A zero wait means requests that cannot go
      * out immediately are rejected.
      *
+     * @return a new limit with the change applied
+     * @param maxWait the longest a request waits for a token; not negative
      * @throws IllegalArgumentException if {@code maxWait} is negative
      */
     public RateLimit maxWait(Duration maxWait) {
@@ -83,22 +97,38 @@ public final class RateLimit {
         return new RateLimit(disabled, perMinute, burst, maxWait);
     }
 
-    /** Returns true if this limit never delays or rejects. */
+    /**
+     * Returns true if this limit never delays or rejects.
+     *
+     * @return true if no limiting happens
+     */
     public boolean isDisabled() {
         return disabled;
     }
 
-    /** Returns the sustained rate in requests per minute. */
+    /**
+     * Returns the sustained rate in requests per minute.
+     *
+     * @return the requests per minute
+     */
     public int perMinute() {
         return perMinute;
     }
 
-    /** Returns the number of requests allowed at once. */
+    /**
+     * Returns the number of requests allowed at once.
+     *
+     * @return the burst size
+     */
     public int burst() {
         return burst;
     }
 
-    /** Returns the longest a request waits for a token before failing. */
+    /**
+     * Returns the longest a request waits for a token before failing.
+     *
+     * @return the longest wait
+     */
     public Duration maxWait() {
         return maxWait;
     }

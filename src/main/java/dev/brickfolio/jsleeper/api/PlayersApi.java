@@ -28,7 +28,12 @@ public final class PlayersApi {
     private final Requester requester;
     private final UnfilteredFetchWatch unfilteredWatch;
 
-    /** For use by {@link dev.brickfolio.jsleeper.SleeperClient} only. */
+    /**
+     * For use by {@link dev.brickfolio.jsleeper.SleeperClient} only.
+     *
+     * @param requester the shared requester
+     * @param unfilteredWatch tracks repeated full-map fetches
+     */
     @SuppressWarnings("exports")
     public PlayersApi(Requester requester, UnfilteredFetchWatch unfilteredWatch) {
         this.requester = Objects.requireNonNull(requester, "requester");
@@ -42,6 +47,8 @@ public final class PlayersApi {
      * <p><b>Call this at most once a day.</b> Sleeper asks callers to cache it and may block
      * abusive clients. Cache the result yourself; a {@code PlayerDirectory} that does so is planned.
      *
+     * @return all players keyed by player ID
+     * @param sport the sport; must not be {@code UNKNOWN}
      * @throws IllegalArgumentException if {@code sport} is null or {@link Sport#UNKNOWN}
      */
     public Map<String, Player> all(Sport sport) {
@@ -56,6 +63,9 @@ public final class PlayersApi {
      * default request timeout; an empty query is the same as {@link #all(Sport)}, including the
      * once-a-day guidance.
      *
+     * @return all players keyed by player ID
+     * @param sport the sport; must not be {@code UNKNOWN}
+     * @param query the filter or options
      * @throws IllegalArgumentException if {@code sport} is null or {@link Sport#UNKNOWN}
      */
     public Map<String, Player> all(Sport sport, PlayerQuery query) {
@@ -72,6 +82,9 @@ public final class PlayersApi {
      * Returns trending adds or drops with Sleeper's defaults (last 24 hours, 25 results).
      * Attribute Sleeper wherever this data is shown.
      *
+     * @return the trending players, or an empty list if there are none
+     * @param sport the sport; must not be {@code UNKNOWN}
+     * @param type which trending list to fetch
      * @throws IllegalArgumentException if {@code sport} is null or {@link Sport#UNKNOWN}
      */
     public List<TrendingPlayer> trending(Sport sport, TrendType type) {
@@ -81,6 +94,10 @@ public final class PlayersApi {
     /**
      * Returns trending adds or drops with a custom lookback and limit.
      *
+     * @return the trending players, or an empty list if there are none
+     * @param sport the sport; must not be {@code UNKNOWN}
+     * @param type which trending list to fetch
+     * @param query the filter or options
      * @throws IllegalArgumentException if {@code sport} is null or {@link Sport#UNKNOWN}
      */
     public List<TrendingPlayer> trending(Sport sport, TrendType type, TrendingQuery query) {

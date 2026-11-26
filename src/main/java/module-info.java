@@ -1,3 +1,6 @@
+/**
+ * jsleeper, a Java client for the read-only Sleeper Fantasy API.
+ */
 module dev.brickfolio.jsleeper {
     requires transitive java.net.http;
     requires transitive com.fasterxml.jackson.databind;

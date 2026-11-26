@@ -63,7 +63,11 @@ public record Transaction(
         metadata = Immutables.map(metadata);
     }
 
-    /** Returns the FAAB bid of a waiver claim from {@code settings.waiver_bid}, if present. */
+    /**
+     * Returns the FAAB bid of a waiver claim from {@code settings.waiver_bid}, if present.
+     *
+     * @return the bid, or empty if there is none
+     */
     public OptionalInt waiverBid() {
         return settings.get(WAIVER_BID_KEY) instanceof Number bid
                 ? OptionalInt.of(bid.intValue()) : OptionalInt.empty();

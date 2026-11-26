@@ -52,7 +52,12 @@ public final class LeaguesApi {
     private final Requester requester;
     private final StateApi state;
 
-    /** For use by {@link dev.brickfolio.jsleeper.SleeperClient} only. */
+    /**
+     * For use by {@link dev.brickfolio.jsleeper.SleeperClient} only.
+     *
+     * @param requester the shared requester
+     * @param state the state facade
+     */
     @SuppressWarnings("exports")
     public LeaguesApi(Requester requester, StateApi state) {
         this.requester = Objects.requireNonNull(requester, "requester");
@@ -62,6 +67,8 @@ public final class LeaguesApi {
     /**
      * Returns a league ({@code /league/{leagueId}}), or empty if it does not exist.
      *
+     * @return the league, or empty if it does not exist
+     * @param leagueId the league ID
      * @throws IllegalArgumentException if {@code leagueId} is null or blank
      */
     public Optional<League> get(String leagueId) {
@@ -73,6 +80,8 @@ public final class LeaguesApi {
     /**
      * Returns the members of a league ({@code /league/{leagueId}/users}), or an empty list.
      *
+     * @return the league users, or an empty list if there are none
+     * @param leagueId the league ID
      * @throws IllegalArgumentException if {@code leagueId} is null or blank
      */
     public List<LeagueUser> users(String leagueId) {
@@ -84,6 +93,8 @@ public final class LeaguesApi {
     /**
      * Returns the rosters of a league ({@code /league/{leagueId}/rosters}), or an empty list.
      *
+     * @return the rosters, or an empty list if there are none
+     * @param leagueId the league ID
      * @throws IllegalArgumentException if {@code leagueId} is null or blank
      */
     public List<Roster> rosters(String leagueId) {
@@ -97,6 +108,9 @@ public final class LeaguesApi {
      * an empty list. The week is not checked against the schedule; out-of-range weeks give an
      * empty list. Use {@link dev.brickfolio.jsleeper.util.Matchups#pair} to group the rows.
      *
+     * @return the matchups, or an empty list if there are none
+     * @param leagueId the league ID
+     * @param week the week, starting at 1
      * @throws IllegalArgumentException if {@code leagueId} is blank or {@code week} is below 1
      */
     public List<Matchup> matchups(String leagueId, int week) {
@@ -110,6 +124,8 @@ public final class LeaguesApi {
      * Returns the winners bracket ({@code /league/{leagueId}/winners_bracket}), or an empty list
      * when no bracket exists yet.
      *
+     * @return the bracket matches, or an empty list if there are none
+     * @param leagueId the league ID
      * @throws IllegalArgumentException if {@code leagueId} is null or blank
      */
     public List<BracketMatch> winnersBracket(String leagueId) {
@@ -120,6 +136,8 @@ public final class LeaguesApi {
      * Returns the losers bracket, or an empty list when none exists yet. The path is
      * {@code losers_bracket}; the Sleeper docs' {@code loses_bracket} is a typo.
      *
+     * @return the bracket matches, or an empty list if there are none
+     * @param leagueId the league ID
      * @throws IllegalArgumentException if {@code leagueId} is null or blank
      */
     public List<BracketMatch> losersBracket(String leagueId) {
@@ -137,6 +155,9 @@ public final class LeaguesApi {
      * ({@code /league/{leagueId}/transactions/{week}}), or an empty list. The Sleeper docs call
      * the week parameter {@code round}.
      *
+     * @return the transactions, or an empty list if there are none
+     * @param leagueId the league ID
+     * @param week the week, starting at 1
      * @throws IllegalArgumentException if {@code leagueId} is blank or {@code week} is below 1
      */
     public List<Transaction> transactions(String leagueId, int week) {
@@ -150,6 +171,8 @@ public final class LeaguesApi {
      * Returns all traded picks in a league, including future picks
      * ({@code /league/{leagueId}/traded_picks}), or an empty list.
      *
+     * @return the traded picks, or an empty list if there are none
+     * @param leagueId the league ID
      * @throws IllegalArgumentException if {@code leagueId} is null or blank
      */
     public List<TradedPick> tradedPicks(String leagueId) {
@@ -163,6 +186,8 @@ public final class LeaguesApi {
      * empty list. Dynasty leagues can have several. These entries leave {@code slotToRosterId}
      * empty; fetch a single draft with {@code drafts().get} to fill it.
      *
+     * @return the drafts, or an empty list if there are none
+     * @param leagueId the league ID
      * @throws IllegalArgumentException if {@code leagueId} is null or blank
      */
     public List<Draft> drafts(String leagueId) {
@@ -175,6 +200,8 @@ public final class LeaguesApi {
      * Returns the matchups of the week Sleeper currently displays. <b>Costs two HTTP calls</b>:
      * {@code /state/nfl} for {@code display_week} (not {@code week}), then the matchups.
      *
+     * @return the matchups, or an empty list if there are none
+     * @param leagueId the league ID
      * @throws IllegalArgumentException if {@code leagueId} is null or blank
      * @throws IllegalStateException if Sleeper reports no display week, as in the off-season
      */
@@ -187,6 +214,8 @@ public final class LeaguesApi {
      * Returns the transactions of the week Sleeper currently displays. <b>Costs two HTTP calls</b>:
      * {@code /state/nfl} for {@code display_week} (not {@code week}), then the transactions.
      *
+     * @return the transactions, or an empty list if there are none
+     * @param leagueId the league ID
      * @throws IllegalArgumentException if {@code leagueId} is null or blank
      * @throws IllegalStateException if Sleeper reports no display week, as in the off-season
      */

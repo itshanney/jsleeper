@@ -1,5 +1,7 @@
 plugins {
     `java-library`
+    `maven-publish`
+    signing
 }
 
 group = "dev.brickfolio"
@@ -9,6 +11,8 @@ java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(25)
     }
+    withSourcesJar()
+    withJavadocJar()
 }
 
 repositories {
@@ -30,6 +34,17 @@ dependencies {
 tasks.compileJava {
     options.compilerArgs.addAll(listOf("-Xlint:all", "-Werror"))
     options.encoding = "UTF-8"
+}
+
+tasks.javadoc {
+    options.encoding = "UTF-8"
+    (options as StandardJavadocDocletOptions).apply {
+        // Missing or malformed docs on exported API fail the build.
+        addStringOption("Xmaxwarns", "1000")
+        addBooleanOption("Xdoclint:all", true)
+        addBooleanOption("Xdoclint/package:-dev.brickfolio.jsleeper.internal", true)  // not public API
+        addBooleanOption("Werror", true)
+    }
 }
 
 tasks.jar {
@@ -57,4 +72,54 @@ val liveTest by tasks.registering(Test::class) {
     }
     System.getenv("SLEEPER_LEAGUE_ID")?.let { environment("SLEEPER_LEAGUE_ID", it) }
     outputs.upToDateWhen { false }
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("mavenJava") {
+            from(components["java"])
+            pom {
+                name = "jsleeper"
+                description = "A Java client for the read-only Sleeper Fantasy API: typed models, retries, " +
+                    "client-side rate limiting and a cached player directory."
+                url = "https://github.com/itshanney/jsleeper"
+                licenses {
+                    license {
+                        name = "MIT License"
+                        url = "https://opensource.org/licenses/MIT"
+                    }
+                }
+                developers {
+                    developer {
+                        id = "itshanney"
+                        name = "Justin Hanney"
+                    }
+                }
+                scm {
+                    connection = "scm:git:https://github.com/itshanney/jsleeper.git"
+                    developerConnection = "scm:git:ssh://git@github.com/itshanney/jsleeper.git"
+                    url = "https://github.com/itshanney/jsleeper"
+                }
+            }
+        }
+    }
+    repositories {
+        // Dry-run target. There is deliberately no remote repository or credentials here.
+        maven {
+            name = "staging"
+            url = uri(layout.buildDirectory.dir("staging-repo"))
+        }
+    }
+}
+
+// Signing happens only when a key is supplied (-PsigningKey=... -PsigningPassword=...), so local
+// builds and the dry run need no keys.
+signing {
+    val signingKey = providers.gradleProperty("signingKey")
+    val signingPassword = providers.gradleProperty("signingPassword")
+    isRequired = signingKey.isPresent
+    if (signingKey.isPresent) {
+        useInMemoryPgpKeys(signingKey.get(), signingPassword.orNull)
+    }
+    sign(publishing.publications["mavenJava"])
 }

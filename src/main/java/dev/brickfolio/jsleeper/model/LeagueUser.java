@@ -31,7 +31,11 @@ public record LeagueUser(
         metadata = Immutables.map(metadata);
     }
 
-    /** Returns the team name the user gave their team, if set and non-blank. */
+    /**
+     * Returns the team name the user gave their team, if set and non-blank.
+     *
+     * @return the team name, or empty
+     */
     public Optional<String> teamName() {
         return Optional.ofNullable(metadata.get(TEAM_NAME_KEY))
                 .filter(String.class::isInstance)

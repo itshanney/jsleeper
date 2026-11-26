@@ -25,7 +25,12 @@ public enum TransactionType implements WireEnum {
         return wireValue;
     }
 
-    /** Returns the constant for a wire string, or {@link #UNKNOWN}. */
+    /**
+     * Returns the constant for a wire string, or {@link #UNKNOWN}.
+     *
+     * @return the matching constant, or {@code UNKNOWN} if unrecognised
+     * @param wire the raw wire string, may be null
+     */
     public static TransactionType fromWire(String wire) {
         return WireEnum.fromWire(TransactionType.class, wire, UNKNOWN);
     }

@@ -35,42 +35,74 @@ public final class SleeperClient {
         this.clock = clock;
     }
 
-    /** Creates a client with default settings (production base URL, no network call). */
+    /**
+     * Creates a client with default settings (production base URL, no network call).
+     *
+     * @return a client with default settings
+     */
     public static SleeperClient create() {
         return builder().build();
     }
 
-    /** Returns a builder for a customised client. */
+    /**
+     * Returns a builder for a customised client.
+     *
+     * @return a new builder
+     */
     public static SleeperClientBuilder builder() {
         return new SleeperClientBuilder();
     }
 
-    /** Sport state endpoint. */
+    /**
+     * Sport state endpoint.
+     *
+     * @return the shared state facade
+     */
     public StateApi state() {
         return state;
     }
 
-    /** User endpoints. */
+    /**
+     * User endpoints.
+     *
+     * @return the shared users facade
+     */
     public UsersApi users() {
         return users;
     }
 
-    /** League endpoints. */
+    /**
+     * League endpoints.
+     *
+     * @return the shared leagues facade
+     */
     public LeaguesApi leagues() {
         return leagues;
     }
 
-    /** Draft endpoints. */
+    /**
+     * Draft endpoints.
+     *
+     * @return the shared drafts facade
+     */
     public DraftsApi drafts() {
         return drafts;
     }
 
-    /** Player endpoints. */
+    /**
+     * Player endpoints.
+     *
+     * @return the shared players facade
+     */
     public PlayersApi players() {
         return players;
     }
 
-    /** Returns the clock this client uses for rate limiting, retries and cache lifetimes. */
+    /**
+     * Returns the clock this client uses for rate limiting, retries and cache lifetimes.
+     *
+     * @return the clock
+     */
     public Clock clock() {
         return clock;
     }

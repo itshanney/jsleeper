@@ -18,7 +18,11 @@ public final class StateApi {
 
     private final Requester requester;
 
-    /** For use by {@link dev.brickfolio.jsleeper.SleeperClient} only. */
+    /**
+     * For use by {@link dev.brickfolio.jsleeper.SleeperClient} only.
+     *
+     * @param requester the shared requester
+     */
     @SuppressWarnings("exports")
     public StateApi(Requester requester) {
         this.requester = Objects.requireNonNull(requester, "requester");
@@ -27,6 +31,8 @@ public final class StateApi {
     /**
      * Returns the current state of a sport.
      *
+     * @return the current state of the sport
+     * @param sport the sport; must not be {@code UNKNOWN}
      * @throws IllegalArgumentException if {@code sport} is {@link Sport#UNKNOWN}
      * @throws dev.brickfolio.jsleeper.error.SleeperApiException if Sleeper has no state for the sport
      */

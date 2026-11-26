@@ -14,7 +14,11 @@ public final class PlayerQuery {
         this.activeOnly = activeOnly;
     }
 
-    /** Returns a new builder. */
+    /**
+     * Returns a new builder.
+     *
+     * @return a new builder
+     */
     public static Builder builder() {
         return new Builder();
     }
@@ -43,7 +47,12 @@ public final class PlayerQuery {
 
         private Builder() {}
 
-        /** Only players whose fantasy positions include this one, such as "QB". Must not be blank. */
+        /**
+         * Only players whose fantasy positions include this one, such as "QB". Must not be blank.
+         *
+         * @return this builder
+         * @param position a position such as "QB"; must not be blank
+         */
         public Builder position(String position) {
             if (position == null || position.isBlank()) {
                 throw new IllegalArgumentException("position must not be blank");
@@ -52,13 +61,22 @@ public final class PlayerQuery {
             return this;
         }
 
-        /** Only active players. Sleeper ignores any other value, so only {@code true} is modelled. */
+        /**
+         * Only active players. Sleeper ignores any other value, so only {@code true} is modelled.
+         *
+         * @return this builder
+         * @param activeOnly true to return only active players
+         */
         public Builder activeOnly(boolean activeOnly) {
             this.activeOnly = activeOnly;
             return this;
         }
 
-        /** Builds the query. */
+        /**
+         * Builds the query.
+         *
+         * @return the configured player query
+         */
         public PlayerQuery build() {
             return new PlayerQuery(position, activeOnly);
         }

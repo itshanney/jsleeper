@@ -34,31 +34,56 @@ public final class SleeperClientBuilder {
 
     SleeperClientBuilder() {}
 
-    /** Sets the API root, for example to point at a test server. Must be absolute http or https. */
+    /**
+     * Sets the API root, for example to point at a test server. Must be absolute http or https.
+     *
+     * @return this builder
+     * @param baseUri the API root; absolute http or https
+     */
     public SleeperClientBuilder baseUri(String baseUri) {
         this.baseUri = Objects.requireNonNull(baseUri, "baseUri");
         return this;
     }
 
-    /** Sets the API root. Must be absolute http or https. */
+    /**
+     * Sets the API root. Must be absolute http or https.
+     *
+     * @return this builder
+     * @param baseUri the API root; absolute http or https
+     */
     public SleeperClientBuilder baseUri(URI baseUri) {
         this.baseUri = Objects.requireNonNull(baseUri, "baseUri").toString();
         return this;
     }
 
-    /** Supplies the HTTP client. Default: HTTP/2, redirects NORMAL, 5s connect timeout. */
+    /**
+     * Supplies the HTTP client. Default: HTTP/2, redirects NORMAL, 5s connect timeout.
+     *
+     * @return this builder
+     * @param httpClient the HTTP client to use
+     */
     public SleeperClientBuilder httpClient(HttpClient httpClient) {
         this.httpClient = Objects.requireNonNull(httpClient, "httpClient");
         return this;
     }
 
-    /** Sets the per-request timeout. Default 10s; must be positive. */
+    /**
+     * Sets the per-request timeout. Default 10s; must be positive.
+     *
+     * @return this builder
+     * @param requestTimeout the per-request timeout; positive
+     */
     public SleeperClientBuilder requestTimeout(Duration requestTimeout) {
         this.requestTimeout = Objects.requireNonNull(requestTimeout, "requestTimeout");
         return this;
     }
 
-    /** Sets the {@code User-Agent} header. Default {@code jsleeper/<version> (+<repo url>)}; must not be blank. */
+    /**
+     * Sets the {@code User-Agent} header. Default {@code jsleeper/<version> (+<repo url>)}; must not be blank.
+     *
+     * @return this builder
+     * @param userAgent the {@code User-Agent} header value; not blank
+     */
     public SleeperClientBuilder userAgent(String userAgent) {
         this.userAgent = Objects.requireNonNull(userAgent, "userAgent");
         return this;
@@ -67,31 +92,54 @@ public final class SleeperClientBuilder {
     /**
      * Supplies a mapper. It is copied and the required settings are applied to the copy; the
      * given instance is never modified.
+     *
+     * @return this builder
+     * @param objectMapper a mapper to copy; it is never modified
      */
     public SleeperClientBuilder objectMapper(ObjectMapper objectMapper) {
         this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper");
         return this;
     }
 
-    /** Sets the retry policy. Default {@link RetryPolicy#defaults()}; use {@link RetryPolicy#none()} to disable. */
+    /**
+     * Sets the retry policy. Default {@link RetryPolicy#defaults()}; use {@link RetryPolicy#none()} to disable.
+     *
+     * @return this builder
+     * @param retryPolicy the retry policy
+     */
     public SleeperClientBuilder retryPolicy(RetryPolicy retryPolicy) {
         this.retryPolicy = Objects.requireNonNull(retryPolicy, "retryPolicy");
         return this;
     }
 
-    /** Sets the client-side rate limit. Default {@link RateLimit#defaults()}; {@link RateLimit#disabled()} turns it off. */
+    /**
+     * Sets the client-side rate limit. Default {@link RateLimit#defaults()}; {@link RateLimit#disabled()} turns it off.
+     *
+     * @return this builder
+     * @param rateLimit the rate limit
+     */
     public SleeperClientBuilder rateLimit(RateLimit rateLimit) {
         this.rateLimit = Objects.requireNonNull(rateLimit, "rateLimit");
         return this;
     }
 
-    /** Sets the listener told about every request attempt. Default: does nothing. One listener only; compose your own. */
+    /**
+     * Sets the listener told about every request attempt. Default: does nothing. One listener only; compose your own.
+     *
+     * @return this builder
+     * @param listener the listener
+     */
     public SleeperClientBuilder listener(RequestListener listener) {
         this.listener = Objects.requireNonNull(listener, "listener");
         return this;
     }
 
-    /** Sets the clock used by time-dependent components. Default UTC system clock. */
+    /**
+     * Sets the clock used by time-dependent components. Default UTC system clock.
+     *
+     * @return this builder
+     * @param clock the clock
+     */
     public SleeperClientBuilder clock(Clock clock) {
         this.clock = Objects.requireNonNull(clock, "clock");
         return this;
@@ -100,6 +148,7 @@ public final class SleeperClientBuilder {
     /**
      * Validates the configuration and builds the client.
      *
+     * @return the configured client
      * @throws IllegalArgumentException if the base URI is not absolute http/https, a timeout is not
      *     positive, or the user agent is blank
      */

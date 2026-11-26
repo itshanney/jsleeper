@@ -26,7 +26,11 @@ public final class UsersApi {
 
     private final Requester requester;
 
-    /** For use by {@link dev.brickfolio.jsleeper.SleeperClient} only. */
+    /**
+     * For use by {@link dev.brickfolio.jsleeper.SleeperClient} only.
+     *
+     * @param requester the shared requester
+     */
     @SuppressWarnings("exports")
     public UsersApi(Requester requester) {
         this.requester = Objects.requireNonNull(requester, "requester");
@@ -38,6 +42,8 @@ public final class UsersApi {
      * <p>Usernames can change, so store {@link User#userId()}. An unknown user gives an empty
      * Optional, not an exception.
      *
+     * @return the user, or empty if it does not exist
+     * @param usernameOrId a username or a user ID
      * @throws IllegalArgumentException if the argument is null or blank
      */
     public Optional<User> get(String usernameOrId) {
@@ -53,6 +59,10 @@ public final class UsersApi {
      * <p>Use {@code SportState.leagueSeason()} for the current season. Sleeper cannot tell an
      * unknown user from a user with no leagues; both give an empty list.
      *
+     * @return the leagues, or an empty list if there are none
+     * @param userId the user ID
+     * @param sport the sport; must not be {@code UNKNOWN}
+     * @param season the season, such as 2026
      * @throws IllegalArgumentException if {@code userId} is blank, {@code sport} is null or
      *     {@link Sport#UNKNOWN}, or {@code season} is not positive
      */
@@ -70,6 +80,10 @@ public final class UsersApi {
      * ({@code /user/{userId}/drafts/{sport}/{season}}), or an empty list. These entries leave
      * {@code slotToRosterId} empty.
      *
+     * @return the drafts, or an empty list if there are none
+     * @param userId the user ID
+     * @param sport the sport; must not be {@code UNKNOWN}
+     * @param season the season, such as 2026
      * @throws IllegalArgumentException if {@code userId} is blank, {@code sport} is null or
      *     {@link Sport#UNKNOWN}, or {@code season} is not positive
      */
@@ -86,6 +100,10 @@ public final class UsersApi {
      * Same as {@link #leagues(String, Sport, int)} with the season as a string, as Sleeper's
      * responses carry it (for example {@code SportState.leagueSeason()}).
      *
+     * @return the leagues, or an empty list if there are none
+     * @param userId the user ID
+     * @param sport the sport; must not be {@code UNKNOWN}
+     * @param season the season, such as 2026
      * @throws IllegalArgumentException if {@code season} is blank, not a number, or not positive
      */
     public List<League> leagues(String userId, Sport sport, String season) {
@@ -95,6 +113,10 @@ public final class UsersApi {
     /**
      * Same as {@link #drafts(String, Sport, int)} with the season as a string.
      *
+     * @return the drafts, or an empty list if there are none
+     * @param userId the user ID
+     * @param sport the sport; must not be {@code UNKNOWN}
+     * @param season the season, such as 2026
      * @throws IllegalArgumentException if {@code season} is blank, not a number, or not positive
      */
     public List<Draft> drafts(String userId, Sport sport, String season) {

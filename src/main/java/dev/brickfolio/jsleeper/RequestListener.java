@@ -8,13 +8,25 @@ package dev.brickfolio.jsleeper;
  */
 public interface RequestListener {
 
-    /** Called before each attempt is sent. Does nothing by default. */
+    /**
+     * Called before each attempt is sent. Does nothing by default.
+     *
+     * @param event the event
+     */
     default void onRequest(RequestEvent event) {}
 
-    /** Called after each attempt finishes. Does nothing by default. */
+    /**
+     * Called after each attempt finishes. Does nothing by default.
+     *
+     * @param event the event
+     */
     default void onResponse(ResponseEvent event) {}
 
-    /** Returns a listener that does nothing. */
+    /**
+     * Returns a listener that does nothing.
+     *
+     * @return a listener that does nothing
+     */
     static RequestListener noop() {
         return new RequestListener() {};
     }

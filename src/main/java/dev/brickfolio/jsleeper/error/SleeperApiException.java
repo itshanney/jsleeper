@@ -10,10 +10,13 @@ public class SleeperApiException extends SleeperException {
     private static final int STATUS_SERVER_ERROR_MIN = 500;
     private static final int STATUS_SERVER_ERROR_MAX = 599;
 
+    /** HTTP status code of the response. */
     private final int status;
+    /** First 512 bytes of the response body, or null. */
     private final String bodySnippet;
 
     /**
+     * Creates the exception.
      * @param method HTTP method
      * @param path request path
      * @param status HTTP status code
@@ -37,6 +40,10 @@ public class SleeperApiException extends SleeperException {
      * anything else to this base class.
      *
      * @param body response body; truncated to 512 UTF-8 bytes, may be null
+     * @return the exception for the status
+     * @param method the HTTP method of the failed request
+     * @param path the request path of the failed request
+     * @param status the HTTP status code
      */
     public static SleeperApiException forStatus(String method, String path, int status, String body) {
         if (status == STATUS_BAD_REQUEST) {
@@ -51,12 +58,20 @@ public class SleeperApiException extends SleeperException {
         return new SleeperApiException(method, path, status, body);
     }
 
-    /** Returns the HTTP status code. */
+    /**
+     * Returns the HTTP status code.
+     *
+     * @return the HTTP status code
+     */
     public int status() {
         return status;
     }
 
-    /** Returns the first 512 bytes of the response body, or null if there was no body. */
+    /**
+     * Returns the first 512 bytes of the response body, or null if there was no body.
+     *
+     * @return the body snippet, or null
+     */
     public String bodySnippet() {
         return bodySnippet;
     }

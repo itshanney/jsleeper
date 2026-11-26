@@ -7,10 +7,13 @@ public class SleeperException extends RuntimeException {
 
     private static final long serialVersionUID = 1L;
 
+    /** HTTP method of the failed request. */
     private final String method;
+    /** Path of the failed request. */
     private final String path;
 
     /**
+     * Creates the exception.
      * @param method HTTP method of the failed request
      * @param path request path of the failed request
      * @param message detail message
@@ -22,12 +25,20 @@ public class SleeperException extends RuntimeException {
         this.path = Objects.requireNonNull(path, "path");
     }
 
-    /** Returns the HTTP method of the failed request. */
+    /**
+     * Returns the HTTP method of the failed request.
+     *
+     * @return the HTTP method
+     */
     public String method() {
         return method;
     }
 
-    /** Returns the path of the failed request. */
+    /**
+     * Returns the path of the failed request.
+     *
+     * @return the request path
+     */
     public String path() {
         return path;
     }

@@ -71,7 +71,12 @@ public final class PlayerDirectory {
         this.clock = client.clock();
     }
 
-    /** Returns a builder for a directory that loads through {@code client}. */
+    /**
+     * Returns a builder for a directory that loads through {@code client}.
+     *
+     * @return a new builder
+     * @param client the client used to load players
+     */
     public static Builder builder(SleeperClient client) {
         return new Builder(Objects.requireNonNull(client, "client"));
     }
@@ -80,6 +85,7 @@ public final class PlayerDirectory {
      * Looks up a player by ID, loading or refreshing the data first if needed. Team defenses use
      * codes such as "DET".
      *
+     * @param playerId the player ID
      * @return the player, or empty if the ID is unknown
      * @throws dev.brickfolio.jsleeper.error.SleeperException if the first load fails
      */
@@ -92,6 +98,7 @@ public final class PlayerDirectory {
      * Returns every player keyed by ID as an unmodifiable map, loading or refreshing first if
      * needed.
      *
+     * @return players keyed by player ID
      * @throws dev.brickfolio.jsleeper.error.SleeperException if the first load fails
      */
     public Map<String, Player> all() {
@@ -118,6 +125,7 @@ public final class PlayerDirectory {
      * The stream is flushed but not closed. Pair with {@link #loadSnapshot} to survive restarts
      * without calling Sleeper again.
      *
+     * @param out the stream to write to; it is flushed, not closed
      * @throws IllegalStateException if nothing has been loaded yet
      * @throws UncheckedIOException if writing fails
      */
@@ -152,6 +160,7 @@ public final class PlayerDirectory {
      * older one is refreshed by the next lookup. The stream is not closed. If the snapshot is
      * rejected, the current data is left untouched.
      *
+     * @param in the stream to read from; it is not closed
      * @throws IllegalArgumentException if the content is malformed, has an unsupported format, or
      *     was written for a different sport
      * @throws UncheckedIOException if reading the stream fails
@@ -223,7 +232,11 @@ public final class PlayerDirectory {
         return node;
     }
 
-    /** Returns when the current data was loaded, or empty if nothing has been loaded yet. */
+    /**
+     * Returns when the current data was loaded, or empty if nothing has been loaded yet.
+     *
+     * @return the load time, or empty if nothing is loaded
+     */
     public Optional<Instant> loadedAt() {
         Snapshot s = snapshot;
         return s == null ? Optional.empty() : Optional.of(s.loadedAt());
@@ -294,7 +307,12 @@ public final class PlayerDirectory {
             this.client = client;
         }
 
-        /** Sets the sport. Default NFL; must not be {@link Sport#UNKNOWN}. */
+        /**
+         * Sets the sport. Default NFL; must not be {@link Sport#UNKNOWN}.
+         *
+         * @return this builder
+         * @param sport the sport; must not be {@code UNKNOWN}
+         */
         public Builder sport(Sport sport) {
             Objects.requireNonNull(sport, "sport");
             if (sport == Sport.UNKNOWN) {
@@ -307,6 +325,9 @@ public final class PlayerDirectory {
         /**
          * Sets how long loaded data is served before a refresh. Default 24 hours; must be positive.
          * A TTL under one hour makes the client log its "fetched again within an hour" warning.
+         *
+         * @return this builder
+         * @param ttl how long data is served before a refresh; must be positive
          */
         public Builder ttl(Duration ttl) {
             Objects.requireNonNull(ttl, "ttl");
@@ -317,7 +338,11 @@ public final class PlayerDirectory {
             return this;
         }
 
-        /** Builds the directory. Makes no HTTP call. */
+        /**
+         * Builds the directory. Makes no HTTP call.
+         *
+         * @return the configured player directory
+         */
         public PlayerDirectory build() {
             return new PlayerDirectory(client, sport, ttl);
         }

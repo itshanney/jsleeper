@@ -39,7 +39,11 @@ public record Matchup(
         startersPoints = Immutables.list(startersPoints);
     }
 
-    /** Returns {@code customPoints} if set, else {@code points}, else 0.0. */
+    /**
+     * Returns {@code customPoints} if set, else {@code points}, else 0.0.
+     *
+     * @return custom points if set, else points, else 0.0
+     */
     public double effectivePoints() {
         if (customPoints != null) {
             return customPoints;
@@ -47,7 +51,11 @@ public record Matchup(
         return points == null ? 0.0 : points;
     }
 
-    /** Returns the players not in the starting lineup, in {@code players} order. */
+    /**
+     * Returns the players not in the starting lineup, in {@code players} order.
+     *
+     * @return the bench player IDs, in players order
+     */
     public List<String> bench() {
         Set<String> started = new HashSet<>(starters);
         List<String> bench = new ArrayList<>();
