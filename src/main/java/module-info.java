@@ -4,4 +4,8 @@ module dev.brickfolio.jsleeper {
     requires com.fasterxml.jackson.datatype.jsr310;
 
     exports dev.brickfolio.jsleeper.error;
+    exports dev.brickfolio.jsleeper.model;
+
+    // Jackson reflects into model records; each new model package needs its own opens line.
+    opens dev.brickfolio.jsleeper.model to com.fasterxml.jackson.databind;
 }
