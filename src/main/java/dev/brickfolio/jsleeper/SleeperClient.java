@@ -1,6 +1,7 @@
 package dev.brickfolio.jsleeper;
 
 import dev.brickfolio.jsleeper.api.StateApi;
+import dev.brickfolio.jsleeper.api.UsersApi;
 import dev.brickfolio.jsleeper.internal.Requester;
 import java.time.Clock;
 
@@ -15,10 +16,12 @@ import java.time.Clock;
 public final class SleeperClient {
 
     private final StateApi state;
+    private final UsersApi users;
     private final Clock clock;
 
     SleeperClient(Requester requester, Clock clock) {
         this.state = new StateApi(requester);
+        this.users = new UsersApi(requester);
         this.clock = clock;
     }
 
@@ -35,6 +38,11 @@ public final class SleeperClient {
     /** Sport state endpoint. */
     public StateApi state() {
         return state;
+    }
+
+    /** User endpoints. */
+    public UsersApi users() {
+        return users;
     }
 
     /** Clock for rate limiting, backoff and cache TTLs in later increments. */

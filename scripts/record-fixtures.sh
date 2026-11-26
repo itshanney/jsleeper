@@ -75,6 +75,9 @@ import json, os, sys
 name, raw, dest, map_file = sys.argv[1:5]
 
 AVATAR_PLACEHOLDER = "0" * 32
+# Contact or credential data on a user object; nulled defensively if Sleeper ever fills it in.
+SENSITIVE_USER_KEY_PARTS = ("email", "phone", "token", "real_name", "password", "secret",
+                            "cookie", "verification", "summoner_name")
 BENIGN_FLAGS = ("on", "off")
 
 # user_id -> N, stable within one run (league_users order first).
@@ -90,6 +93,9 @@ def avatar(value):
 
 def anonymise_user(user):
     n = number_for(user["user_id"])
+    for key in user:
+        if any(part in key.lower() for part in SENSITIVE_USER_KEY_PARTS):
+            user[key] = None
     if user.get("username") is not None:
         user["username"] = "user%d" % n
     if user.get("display_name") is not None:

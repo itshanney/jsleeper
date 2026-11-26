@@ -38,7 +38,6 @@ public final class Requester {
     private static final int ERROR_BODY_LIMIT_BYTES = 4096;
     // Decoded then truncated to 512 bytes by the exception types; a little slack avoids a split char.
     private static final int SNIPPET_DECODE_BYTES = 1024;
-    private static final String HEX = "0123456789ABCDEF";
 
     private final HttpClient httpClient;
     private final String baseUri;
@@ -195,7 +194,7 @@ public final class Requester {
     private static String encodePath(List<String> segments) {
         StringBuilder sb = new StringBuilder();
         for (String segment : segments) {
-            sb.append('/').append(percentEncode(segment));
+            sb.append('/').append(UrlEncoding.encode(segment));
         }
         return sb.toString();
     }
@@ -207,25 +206,9 @@ public final class Requester {
         StringBuilder sb = new StringBuilder();
         char separator = '?';
         for (Map.Entry<String, String> e : query.entrySet()) {
-            sb.append(separator).append(percentEncode(e.getKey())).append('=')
-                    .append(percentEncode(e.getValue()));
+            sb.append(separator).append(UrlEncoding.encode(e.getKey())).append('=')
+                    .append(UrlEncoding.encode(e.getValue()));
             separator = '&';
-        }
-        return sb.toString();
-    }
-
-    /** RFC 3986 percent-encoding of UTF-8 bytes; only unreserved characters pass through. */
-    static String percentEncode(String value) {
-        StringBuilder sb = new StringBuilder();
-        for (byte b : value.getBytes(StandardCharsets.UTF_8)) {
-            char c = (char) (b & 0xFF);
-            boolean unreserved = (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')
-                    || (c >= '0' && c <= '9') || c == '-' || c == '.' || c == '_' || c == '~';
-            if (unreserved) {
-                sb.append(c);
-            } else {
-                sb.append('%').append(HEX.charAt(c >> 4)).append(HEX.charAt(c & 0xF));
-            }
         }
         return sb.toString();
     }
