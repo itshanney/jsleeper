@@ -1,5 +1,6 @@
 package dev.brickfolio.jsleeper;
 
+import dev.brickfolio.jsleeper.api.DraftsApi;
 import dev.brickfolio.jsleeper.api.LeaguesApi;
 import dev.brickfolio.jsleeper.api.StateApi;
 import dev.brickfolio.jsleeper.api.UsersApi;
@@ -19,12 +20,14 @@ public final class SleeperClient {
     private final StateApi state;
     private final UsersApi users;
     private final LeaguesApi leagues;
+    private final DraftsApi drafts;
     private final Clock clock;
 
     SleeperClient(Requester requester, Clock clock) {
         this.state = new StateApi(requester);
         this.users = new UsersApi(requester);
         this.leagues = new LeaguesApi(requester);
+        this.drafts = new DraftsApi(requester);
         this.clock = clock;
     }
 
@@ -51,6 +54,11 @@ public final class SleeperClient {
     /** League endpoints. */
     public LeaguesApi leagues() {
         return leagues;
+    }
+
+    /** Draft endpoints. */
+    public DraftsApi drafts() {
+        return drafts;
     }
 
     /** Clock for rate limiting, backoff and cache TTLs in later increments. */

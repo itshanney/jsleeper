@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 import dev.brickfolio.jsleeper.internal.EmptyKind;
 import dev.brickfolio.jsleeper.internal.Requester;
+import dev.brickfolio.jsleeper.model.Draft;
 import dev.brickfolio.jsleeper.model.League;
 import dev.brickfolio.jsleeper.model.LeagueUser;
 import dev.brickfolio.jsleeper.model.Matchup;
@@ -42,6 +43,9 @@ public final class LeaguesApi {
             TYPES.constructCollectionType(List.class, Transaction.class);
     private static final JavaType TRADED_PICK_LIST_TYPE =
             TYPES.constructCollectionType(List.class, TradedPick.class);
+
+    private static final JavaType DRAFT_LIST_TYPE =
+            TYPES.constructCollectionType(List.class, Draft.class);
 
     private final Requester requester;
 
@@ -148,5 +152,18 @@ public final class LeaguesApi {
         Args.requireId("leagueId", leagueId);
         return requester.get(List.of("league", leagueId, "traded_picks"), Map.of(),
                 TRADED_PICK_LIST_TYPE, EmptyKind.LIST, null);
+    }
+
+    /**
+     * Returns a league's drafts, most recent first ({@code /league/{leagueId}/drafts}), or an
+     * empty list. Dynasty leagues can have several. These entries leave {@code slotToRosterId}
+     * empty; fetch a single draft with {@code drafts().get} to fill it.
+     *
+     * @throws IllegalArgumentException if {@code leagueId} is null or blank
+     */
+    public List<Draft> drafts(String leagueId) {
+        Args.requireId("leagueId", leagueId);
+        return requester.get(List.of("league", leagueId, "drafts"), Map.of(), DRAFT_LIST_TYPE,
+                EmptyKind.LIST, null);
     }
 }

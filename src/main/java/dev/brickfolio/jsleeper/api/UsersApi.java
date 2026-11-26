@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 import dev.brickfolio.jsleeper.internal.EmptyKind;
 import dev.brickfolio.jsleeper.internal.Requester;
+import dev.brickfolio.jsleeper.model.Draft;
 import dev.brickfolio.jsleeper.model.League;
 import dev.brickfolio.jsleeper.model.Sport;
 import dev.brickfolio.jsleeper.model.User;
@@ -19,6 +20,9 @@ public final class UsersApi {
     private static final JavaType USER_TYPE = TYPES.constructType(User.class);
     private static final JavaType LEAGUE_LIST_TYPE =
             TYPES.constructCollectionType(List.class, League.class);
+
+    private static final JavaType DRAFT_LIST_TYPE =
+            TYPES.constructCollectionType(List.class, Draft.class);
 
     private final Requester requester;
 
@@ -59,5 +63,22 @@ public final class UsersApi {
         return requester.get(
                 List.of("user", userId, "leagues", sport.wireValue(), Integer.toString(season)),
                 Map.of(), LEAGUE_LIST_TYPE, EmptyKind.LIST, null);
+    }
+
+    /**
+     * Returns the drafts a user took part in for a sport and season
+     * ({@code /user/{userId}/drafts/{sport}/{season}}), or an empty list. These entries leave
+     * {@code slotToRosterId} empty.
+     *
+     * @throws IllegalArgumentException if {@code userId} is blank, {@code sport} is null or
+     *     {@link Sport#UNKNOWN}, or {@code season} is not positive
+     */
+    public List<Draft> drafts(String userId, Sport sport, int season) {
+        Args.requireId("userId", userId);
+        Args.requireSport(sport);
+        Args.requirePositive("season", season);
+        return requester.get(
+                List.of("user", userId, "drafts", sport.wireValue(), Integer.toString(season)),
+                Map.of(), DRAFT_LIST_TYPE, EmptyKind.LIST, null);
     }
 }
