@@ -6,6 +6,7 @@ import dev.brickfolio.jsleeper.internal.EmptyKind;
 import dev.brickfolio.jsleeper.internal.Requester;
 import dev.brickfolio.jsleeper.model.League;
 import dev.brickfolio.jsleeper.model.LeagueUser;
+import dev.brickfolio.jsleeper.model.Roster;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -23,6 +24,9 @@ public final class LeaguesApi {
     private static final JavaType LEAGUE_TYPE = TYPES.constructType(League.class);
     private static final JavaType LEAGUE_USER_LIST_TYPE =
             TYPES.constructCollectionType(List.class, LeagueUser.class);
+
+    private static final JavaType ROSTER_LIST_TYPE =
+            TYPES.constructCollectionType(List.class, Roster.class);
 
     private final Requester requester;
 
@@ -51,6 +55,17 @@ public final class LeaguesApi {
     public List<LeagueUser> users(String leagueId) {
         Args.requireId("leagueId", leagueId);
         return requester.get(List.of("league", leagueId, "users"), Map.of(), LEAGUE_USER_LIST_TYPE,
+                EmptyKind.LIST, null);
+    }
+
+    /**
+     * Returns the rosters of a league ({@code /league/{leagueId}/rosters}), or an empty list.
+     *
+     * @throws IllegalArgumentException if {@code leagueId} is null or blank
+     */
+    public List<Roster> rosters(String leagueId) {
+        Args.requireId("leagueId", leagueId);
+        return requester.get(List.of("league", leagueId, "rosters"), Map.of(), ROSTER_LIST_TYPE,
                 EmptyKind.LIST, null);
     }
 }
