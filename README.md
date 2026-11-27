@@ -39,7 +39,7 @@ dependencies {
 </dependency>
 ```
 
-The build version in this repository is `0.1.0-SNAPSHOT`. A release sets the version to `0.1.0` (for example with a tag build), then publishes.
+The build version in this repository is `0.1.0`. It is not yet published to Maven Central; until it is, install it locally with `./gradlew publishToMavenLocal`.
 
 ## Quick start
 
